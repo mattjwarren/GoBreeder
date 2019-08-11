@@ -1,0 +1,142 @@
+### #VM Notes 
+'''
+    ###Notes:- what about just patterned board playing strategies. Space-patirioning strategies?
+    
+    ##look at it as a space-filling rpoblem
+    instruction_set={
+                     values can be
+                     
+                     c  constant                                    add 1   1
+                                                                    ->puts two into RES (1+1)
+                                                                    ->clears CRY (no carry occurred)
+                                                                    ->sets SGN to 1 (result is positive)
+                                                                    ->leaves LOG alone (not a relevant OP)
+                                                                    
+                     m  content of memory                           add m34 m33  // m34=1   m33=2
+                                                                    ->puts 3 into RES
+                                                                    ->etc..
+                                                                    add m34 mRES // RES=3 (IE: from previous) / m3=5
+                                                                    ->m34=1 RES=3 mRES=m3=5,
+                                                                    ->puts 6 into RES ;etc..
+                                                                    
+                     *m content of referenced memory / dereferenced add *m34 m33  // m1=9
+                                                                    ->puts 11 into RES ;etc
+                                                                    (m34=1, *m34=m1, m1=9, m33=2, 9+m33=11)
+                                                                    
+                                                                    
+                     babs
+                     
+                     #memory references
+                     m123   constant
+                     mRES|X|Y   value in
+                     *mRES|X|Y  _ptr(value in) - dereference // ie, value in that memory location points to the memory location whose value the symbol should resolve to
+                     b[board _ptr values] - [vertice(played upon intersections) states] into STN register  (curent stone context)
+                       
+                         
+                     
+                     
+                     
+                     
+                     
+                     
+                     board state paths
+                        abs get             values given % with 10
+                        circular get        post increment circular loop pointers
+                        row / column get    post increment row / column pointers  //   win counting, cellular automata // bit of a loss but i love the subject
+                        
+                        
+                     Game State info:
+                            stones - list of stones -1/black 0/space 1/white
+                            spaces - list of spaces
+                            freedoms
+                            board groups
+                            list of valid moves
+                            list of invalid moves
+                            //stone pointer(s)?
+                            
+                    intruction set (val combinations implied)
+                        
+                    
+                    math ops
+                        add#
+                        sub#
+                        div#
+                        mul#
+                        incr#
+                        decr#
+                        shiftl# - DEAD SHIFTS / IE: bits drop off!
+                        shiftr#
+                        shiftlc# CIRCULAr / not CARRY! (why not!!)) / IE: bits wrap around
+                        shiftrc# 
+                        
+                        ####totdo#########################################################
+                        shiftly  - this is CARRY! / mathematical shift with carry
+                        shiftry
+                        cmpe
+                        cmpne
+                        cmp0
+                        //logic
+                        and
+                        or
+                        not
+                        xor
+                        
+                        
+                    flow control
+                        jmp# //address or pattern? ((compensate on inserts?**Should do this even with relative available**) or  is jmpr enough?
+                        jmp0#
+                        jpmr# //is this what the fragile jump guy didnt know? jump relative
+                        jmpr0#
+                        call#
+                        call0#
+                        ret#
+                        ret0#
+                        jmpl ###############<<new flow control
+                        calll
+                        retl
+                        jmprl
+                        callrl
+                    working memory ops / tha stack
+                        mov
+                        push
+                        pop
+                        popf
+                        pushf
+                    //maybe skip these        blockops
+                        bcpyab
+                        bsetab
+                    registers / specials  
+                    --CL[register] - clears register
+                      X
+                      Y
+                      RES - result of maths ops                 
+                      CRY - carry, underflows/overflows set this
+                      SGN - sign -1/0/1 (-1/1/1?)
+                      							cmp[REGISTER]res
+                      LOG
+                      STN   - stone in current context
+                      - general purpose
+                          GPA..GPZ
+                      
+                      //board _ptr values
+                      tl
+                      tt
+                      tr
+                      ml
+                      c
+                      mr
+                      bl
+                      bb
+                      br
+                      
+                      //Halt
+                      STP
+
+
+    how do?
+    
+    each instruction (opcode,data,..) as object, genome as list of objects? - easy to work with, encapsulated, SLOW
+    or
+    literal list of opcode indices, data follows inline - fragile, marshalling during manipulation is our responsibility (Genome model consistency - Atomicism)), FAST (Time limit to implement tho (and need breeding time)
+    or
+    black magic / formal specification & generation, (v.long?)time to setup, natural/+(bonus communicable to others)!, Potentially VERY FAST

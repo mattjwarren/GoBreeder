@@ -1,0 +1,1659 @@
+B>> protocol_version
+B<< = 2
+B<<
+B>> name
+B<< = gogui-dummy
+B<<
+B>> version
+B<< = 1.4.7
+B<<
+B>> list_commands
+B<< = boardsize
+B<< clear_board
+B<< echo
+B<< echo_err
+B<< genmove
+B<< gogui-analyze_commands
+B<< gogui-dummy-bwboard
+B<< gogui-dummy-crash
+B<< gogui-dummy-delay
+B<< gogui-dummy-eplist
+B<< gogui-dummy-file_open
+B<< gogui-dummy-file_save
+B<< gogui-dummy-gfx
+B<< gogui-dummy-invalid
+B<< gogui-dummy-live_gfx
+B<< gogui-dummy-long_response
+B<< gogui-dummy-next_failure
+B<< gogui-dummy-next_success
+B<< gogui-dummy-sboard
+B<< gogui-dummy-sleep
+B<< gogui-interrupt
+B<< known_command
+B<< list_commands
+B<< name
+B<< play
+B<< protocol_version
+B<< quit
+B<< version
+B<<
+B>> gogui-interrupt
+B<< =
+B<<
+W>> protocol_version
+W<< = 2
+W<<
+W>> name
+W<< = gogui-dummy
+W<<
+W>> version
+W<< = 1.4.7
+W<<
+W>> list_commands
+W<< = boardsize
+W<< clear_board
+W<< echo
+W<< echo_err
+W<< genmove
+W<< gogui-analyze_commands
+W<< gogui-dummy-bwboard
+W<< gogui-dummy-crash
+W<< gogui-dummy-delay
+W<< gogui-dummy-eplist
+W<< gogui-dummy-file_open
+W<< gogui-dummy-file_save
+W<< gogui-dummy-gfx
+W<< gogui-dummy-invalid
+W<< gogui-dummy-live_gfx
+W<< gogui-dummy-long_response
+W<< gogui-dummy-next_failure
+W<< gogui-dummy-next_success
+W<< gogui-dummy-sboard
+W<< gogui-dummy-sleep
+W<< gogui-interrupt
+W<< known_command
+W<< list_commands
+W<< name
+W<< play
+W<< protocol_version
+W<< quit
+W<< version
+W<<
+W>> gogui-interrupt
+W<< =
+W<<
+B>> boardsize 9
+B<< =
+B<<
+B>> clear_board
+B<< =
+B<<
+W>> boardsize 9
+W<< =
+W<<
+W>> clear_board
+W<< =
+W<<
+============================================
+Game 0
+============================================
+B>> boardsize 9
+B<< =
+B<<
+B>> clear_board
+B<< =
+B<<
+W>> boardsize 9
+W<< =
+W<<
+W>> clear_board
+W<< =
+W<<
+B>> genmove b
+B<< = J5
+B<<
+W>> play B J5
+W<< =
+W<<
+W>> genmove w
+W<< = G8
+W<<
+B>> play W G8
+B<< =
+B<<
+B>> genmove b
+B<< = D5
+B<<
+W>> play B D5
+W<< =
+W<<
+W>> genmove w
+W<< = G3
+W<<
+B>> play W G3
+B<< =
+B<<
+B>> genmove b
+B<< = A4
+B<<
+W>> play B A4
+W<< =
+W<<
+W>> genmove w
+W<< = E3
+W<<
+B>> play W E3
+B<< =
+B<<
+B>> genmove b
+B<< = B1
+B<<
+W>> play B B1
+W<< =
+W<<
+W>> genmove w
+W<< = H6
+W<<
+B>> play W H6
+B<< =
+B<<
+B>> genmove b
+B<< = J7
+B<<
+W>> play B J7
+W<< =
+W<<
+W>> genmove w
+W<< = E8
+W<<
+B>> play W E8
+B<< =
+B<<
+B>> genmove b
+B<< = H7
+B<<
+W>> play B H7
+W<< =
+W<<
+W>> genmove w
+W<< = B9
+W<<
+B>> play W B9
+B<< =
+B<<
+B>> genmove b
+B<< = J9
+B<<
+W>> play B J9
+W<< =
+W<<
+W>> genmove w
+W<< = H9
+W<<
+B>> play W H9
+B<< =
+B<<
+B>> genmove b
+B<< = H2
+B<<
+W>> play B H2
+W<< =
+W<<
+W>> genmove w
+W<< = E9
+W<<
+B>> play W E9
+B<< =
+B<<
+B>> genmove b
+B<< = D3
+B<<
+W>> play B D3
+W<< =
+W<<
+W>> genmove w
+W<< = F8
+W<<
+B>> play W F8
+B<< =
+B<<
+B>> genmove b
+B<< = C4
+B<<
+W>> play B C4
+W<< =
+W<<
+W>> genmove w
+W<< = C7
+W<<
+B>> play W C7
+B<< =
+B<<
+B>> genmove b
+B<< = E6
+B<<
+W>> play B E6
+W<< =
+W<<
+W>> genmove w
+W<< = G1
+W<<
+B>> play W G1
+B<< =
+B<<
+B>> genmove b
+B<< = A3
+B<<
+W>> play B A3
+W<< =
+W<<
+W>> genmove w
+W<< = G9
+W<<
+B>> play W G9
+B<< =
+B<<
+B>> genmove b
+B<< = G6
+B<<
+W>> play B G6
+W<< =
+W<<
+W>> genmove w
+W<< = B8
+W<<
+B>> play W B8
+B<< =
+B<<
+B>> genmove b
+B<< = J4
+B<<
+W>> play B J4
+W<< =
+W<<
+W>> genmove w
+W<< = B4
+W<<
+B>> play W B4
+B<< =
+B<<
+B>> genmove b
+B<< = J8
+B<<
+W>> play B J8
+W<< =
+W<<
+W>> genmove w
+W<< = E1
+W<<
+B>> play W E1
+B<< =
+B<<
+B>> genmove b
+B<< = B7
+B<<
+W>> play B B7
+W<< =
+W<<
+W>> genmove w
+W<< = D6
+W<<
+B>> play W D6
+B<< =
+B<<
+B>> genmove b
+B<< = E5
+B<<
+W>> play B E5
+W<< =
+W<<
+W>> genmove w
+W<< = D1
+W<<
+B>> play W D1
+B<< =
+B<<
+B>> genmove b
+B<< = E2
+B<<
+W>> play B E2
+W<< =
+W<<
+W>> genmove w
+W<< = F7
+W<<
+B>> play W F7
+B<< =
+B<<
+B>> genmove b
+B<< = H4
+B<<
+W>> play B H4
+W<< =
+W<<
+W>> genmove w
+W<< = A6
+W<<
+B>> play W A6
+B<< =
+B<<
+B>> genmove b
+B<< = F2
+B<<
+W>> play B F2
+W<< =
+W<<
+W>> genmove w
+W<< = A2
+W<<
+B>> play W A2
+B<< =
+B<<
+B>> genmove b
+B<< = H1
+B<<
+W>> play B H1
+W<< =
+W<<
+W>> genmove w
+W<< = F3
+W<<
+B>> play W F3
+B<< =
+B<<
+B>> genmove b
+B<< = J6
+B<<
+W>> play B J6
+W<< =
+W<<
+W>> genmove w
+W<< = F5
+W<<
+B>> play W F5
+B<< =
+B<<
+B>> genmove b
+B<< = G7
+B<<
+W>> play B G7
+W<< =
+W<<
+W>> genmove w
+W<< = H5
+W<<
+B>> play W H5
+B<< =
+B<<
+B>> genmove b
+B<< = F9
+B<<
+W>> play B F9
+W<< =
+W<<
+W>> genmove w
+W<< = A8
+W<<
+B>> play W A8
+B<< =
+B<<
+B>> genmove b
+B<< = C8
+B<<
+W>> play B C8
+W<< =
+W<<
+W>> genmove w
+W<< = F6
+W<<
+B>> play W F6
+B<< =
+B<<
+B>> genmove b
+B<< = D7
+B<<
+W>> play B D7
+W<< =
+W<<
+W>> genmove w
+W<< = D2
+W<<
+B>> play W D2
+B<< =
+B<<
+B>> genmove b
+B<< = B6
+B<<
+W>> play B B6
+W<< =
+W<<
+W>> genmove w
+W<< = D9
+W<<
+B>> play W D9
+B<< =
+B<<
+B>> genmove b
+B<< = A7
+B<<
+W>> play B A7
+W<< =
+W<<
+W>> genmove w
+W<< = C2
+W<<
+B>> play W C2
+B<< =
+B<<
+B>> genmove b
+B<< = B2
+B<<
+W>> play B B2
+W<< =
+W<<
+W>> genmove w
+W<< = A5
+W<<
+B>> play W A5
+B<< =
+B<<
+B>> genmove b
+B<< = C1
+B<<
+W>> play B C1
+W<< =
+W<<
+W>> genmove w
+W<< = J3
+W<<
+B>> play W J3
+B<< =
+B<<
+B>> genmove b
+B<< = E7
+B<<
+W>> play B E7
+W<< =
+W<<
+W>> genmove w
+W<< = J1
+W<<
+B>> play W J1
+B<< =
+B<<
+B>> genmove b
+B<< = G2
+B<<
+W>> play B G2
+W<< =
+W<<
+W>> genmove w
+W<< = H8
+W<<
+B>> play W H8
+B<< =
+B<<
+B>> genmove b
+B<< = B5
+B<<
+W>> play B B5
+W<< =
+W<<
+W>> genmove w
+W<< = C3
+W<<
+B>> play W C3
+B<< =
+B<<
+B>> genmove b
+B<< = C5
+B<<
+W>> play B C5
+W<< =
+W<<
+W>> genmove w
+W<< = D4
+W<<
+B>> play W D4
+B<< =
+B<<
+B>> genmove b
+B<< = C6
+B<<
+W>> play B C6
+W<< =
+W<<
+W>> genmove w
+W<< = A9
+W<<
+B>> play W A9
+B<< =
+B<<
+B>> genmove b
+B<< = F1
+B<<
+W>> play B F1
+W<< =
+W<<
+W>> genmove w
+W<< = J2
+W<<
+B>> play W J2
+B<< =
+B<<
+B>> genmove b
+B<< = H3
+B<<
+W>> play B H3
+W<< =
+W<<
+W>> genmove w
+W<< = C9
+W<<
+B>> play W C9
+B<< =
+B<<
+B>> genmove b
+B<< = G5
+B<<
+W>> play B G5
+W<< =
+W<<
+W>> genmove w
+W<< = A1
+W<<
+B>> play W A1
+B<< =
+B<<
+B>> genmove b
+B<< = E4
+B<<
+W>> play B E4
+W<< =
+W<<
+W>> genmove w
+W<< = B3
+W<<
+B>> play W B3
+B<< =
+B<<
+B>> genmove b
+B<< = F4
+B<<
+W>> play B F4
+W<< =
+W<<
+W>> genmove w
+W<< = D8
+W<<
+B>> play W D8
+B<< =
+B<<
+B>> genmove b
+B<< = G4
+B<<
+W>> play B G4
+W<< =
+W<<
+W>> genmove w
+W<< = PASS
+W<<
+B>> play W PASS
+B<< =
+B<<
+B>> genmove b
+B<< = PASS
+B<<
+W>> play B PASS
+W<< =
+W<<
+B>> final_score
+B<< ? unknown command: final_score
+B<<
+W>> final_score
+W<< ? unknown command: final_score
+W<<
+============================================
+Game 1
+============================================
+B>> boardsize 9
+B<< =
+B<<
+B>> clear_board
+B<< =
+B<<
+W>> boardsize 9
+W<< =
+W<<
+W>> clear_board
+W<< =
+W<<
+B>> genmove b
+B<< = G8
+B<<
+W>> play B G8
+W<< =
+W<<
+W>> genmove w
+W<< = F3
+W<<
+B>> play W F3
+B<< =
+B<<
+B>> genmove b
+B<< = H7
+B<<
+W>> play B H7
+W<< =
+W<<
+W>> genmove w
+W<< = J4
+W<<
+B>> play W J4
+B<< =
+B<<
+B>> genmove b
+B<< = A1
+B<<
+W>> play B A1
+W<< =
+W<<
+W>> genmove w
+W<< = H5
+W<<
+B>> play W H5
+B<< =
+B<<
+B>> genmove b
+B<< = E3
+B<<
+W>> play B E3
+W<< =
+W<<
+W>> genmove w
+W<< = A2
+W<<
+B>> play W A2
+B<< =
+B<<
+B>> genmove b
+B<< = H9
+B<<
+W>> play B H9
+W<< =
+W<<
+W>> genmove w
+W<< = A3
+W<<
+B>> play W A3
+B<< =
+B<<
+B>> genmove b
+B<< = J5
+B<<
+W>> play B J5
+W<< =
+W<<
+W>> genmove w
+W<< = J8
+W<<
+B>> play W J8
+B<< =
+B<<
+B>> genmove b
+B<< = G1
+B<<
+W>> play B G1
+W<< =
+W<<
+W>> genmove w
+W<< = J3
+W<<
+B>> play W J3
+B<< =
+B<<
+B>> genmove b
+B<< = B4
+B<<
+W>> play B B4
+W<< =
+W<<
+W>> genmove w
+W<< = F8
+W<<
+B>> play W F8
+B<< =
+B<<
+B>> genmove b
+B<< = B5
+B<<
+W>> play B B5
+W<< =
+W<<
+W>> genmove w
+W<< = E5
+W<<
+B>> play W E5
+B<< =
+B<<
+B>> genmove b
+B<< = F5
+B<<
+W>> play B F5
+W<< =
+W<<
+W>> genmove w
+W<< = C9
+W<<
+B>> play W C9
+B<< =
+B<<
+B>> genmove b
+B<< = A8
+B<<
+W>> play B A8
+W<< =
+W<<
+W>> genmove w
+W<< = H3
+W<<
+B>> play W H3
+B<< =
+B<<
+B>> genmove b
+B<< = B6
+B<<
+W>> play B B6
+W<< =
+W<<
+W>> genmove w
+W<< = F2
+W<<
+B>> play W F2
+B<< =
+B<<
+B>> genmove b
+B<< = J9
+B<<
+W>> play B J9
+W<< =
+W<<
+W>> genmove w
+W<< = G5
+W<<
+B>> play W G5
+B<< =
+B<<
+B>> genmove b
+B<< = J2
+B<<
+W>> play B J2
+W<< =
+W<<
+W>> genmove w
+W<< = C6
+W<<
+B>> play W C6
+B<< =
+B<<
+B>> genmove b
+B<< = F9
+B<<
+W>> play B F9
+W<< =
+W<<
+W>> genmove w
+W<< = A7
+W<<
+B>> play W A7
+B<< =
+B<<
+B>> genmove b
+B<< = H8
+B<<
+W>> play B H8
+W<< =
+W<<
+W>> genmove w
+W<< = B3
+W<<
+B>> play W B3
+B<< =
+B<<
+B>> genmove b
+B<< = E4
+B<<
+W>> play B E4
+W<< =
+W<<
+W>> genmove w
+W<< = G2
+W<<
+B>> play W G2
+B<< =
+B<<
+B>> genmove b
+B<< = D1
+B<<
+W>> play B D1
+W<< =
+W<<
+W>> genmove w
+W<< = G4
+W<<
+B>> play W G4
+B<< =
+B<<
+B>> genmove b
+B<< = C4
+B<<
+W>> play B C4
+W<< =
+W<<
+W>> genmove w
+W<< = H2
+W<<
+B>> play W H2
+B<< =
+B<<
+B>> genmove b
+B<< = B2
+B<<
+W>> play B B2
+W<< =
+W<<
+W>> genmove w
+W<< = C8
+W<<
+B>> play W C8
+B<< =
+B<<
+B>> genmove b
+B<< = E7
+B<<
+W>> play B E7
+W<< =
+W<<
+W>> genmove w
+W<< = D5
+W<<
+B>> play W D5
+B<< =
+B<<
+B>> genmove b
+B<< = F7
+B<<
+W>> play B F7
+W<< =
+W<<
+W>> genmove w
+W<< = C3
+W<<
+B>> play W C3
+B<< =
+B<<
+B>> genmove b
+B<< = J6
+B<<
+W>> play B J6
+W<< =
+W<<
+W>> genmove w
+W<< = F4
+W<<
+B>> play W F4
+B<< =
+B<<
+B>> genmove b
+B<< = C5
+B<<
+W>> play B C5
+W<< =
+W<<
+W>> genmove w
+W<< = E2
+W<<
+B>> play W E2
+B<< =
+B<<
+B>> genmove b
+B<< = E9
+B<<
+W>> play B E9
+W<< =
+W<<
+W>> genmove w
+W<< = D8
+W<<
+B>> play W D8
+B<< =
+B<<
+B>> genmove b
+B<< = C7
+B<<
+W>> play B C7
+W<< =
+W<<
+W>> genmove w
+W<< = D7
+W<<
+B>> play W D7
+B<< =
+B<<
+B>> genmove b
+B<< = B7
+B<<
+W>> play B B7
+W<< =
+W<<
+W>> genmove w
+W<< = D2
+W<<
+B>> play W D2
+B<< =
+B<<
+B>> genmove b
+B<< = D3
+B<<
+W>> play B D3
+W<< =
+W<<
+W>> genmove w
+W<< = H6
+W<<
+B>> play W H6
+B<< =
+B<<
+B>> genmove b
+B<< = H4
+B<<
+W>> play B H4
+W<< =
+W<<
+W>> genmove w
+W<< = A6
+W<<
+B>> play W A6
+B<< =
+B<<
+B>> genmove b
+B<< = C2
+B<<
+W>> play B C2
+W<< =
+W<<
+W>> genmove w
+W<< = A4
+W<<
+B>> play W A4
+B<< =
+B<<
+B>> genmove b
+B<< = G7
+B<<
+W>> play B G7
+W<< =
+W<<
+W>> genmove w
+W<< = B1
+W<<
+B>> play W B1
+B<< =
+B<<
+B>> genmove b
+B<< = G9
+B<<
+W>> play B G9
+W<< =
+W<<
+W>> genmove w
+W<< = F6
+W<<
+B>> play W F6
+B<< =
+B<<
+B>> genmove b
+B<< = D9
+B<<
+W>> play B D9
+W<< =
+W<<
+W>> genmove w
+W<< = B8
+W<<
+B>> play W B8
+B<< =
+B<<
+B>> genmove b
+B<< = E6
+B<<
+W>> play B E6
+W<< =
+W<<
+W>> genmove w
+W<< = D4
+W<<
+B>> play W D4
+B<< =
+B<<
+B>> genmove b
+B<< = A9
+B<<
+W>> play B A9
+W<< =
+W<<
+W>> genmove w
+W<< = C1
+W<<
+B>> play W C1
+B<< =
+B<<
+B>> genmove b
+B<< = D6
+B<<
+W>> play B D6
+W<< =
+W<<
+W>> genmove w
+W<< = B9
+W<<
+B>> play W B9
+B<< =
+B<<
+B>> genmove b
+B<< = A5
+B<<
+W>> play B A5
+W<< =
+W<<
+W>> genmove w
+W<< = H1
+W<<
+B>> play W H1
+B<< =
+B<<
+B>> genmove b
+B<< = F1
+B<<
+W>> play B F1
+W<< =
+W<<
+W>> genmove w
+W<< = J7
+W<<
+B>> play W J7
+B<< =
+B<<
+B>> genmove b
+B<< = J1
+B<<
+W>> play B J1
+W<< =
+W<<
+W>> genmove w
+W<< = G3
+W<<
+B>> play W G3
+B<< =
+B<<
+B>> genmove b
+B<< = E8
+B<<
+W>> play B E8
+W<< =
+W<<
+W>> genmove w
+W<< = G6
+W<<
+B>> play W G6
+B<< =
+B<<
+B>> genmove b
+B<< = E1
+B<<
+W>> play B E1
+W<< =
+W<<
+W>> genmove w
+W<< = PASS
+W<<
+B>> play W PASS
+B<< =
+B<<
+B>> genmove b
+B<< = PASS
+B<<
+W>> play B PASS
+W<< =
+W<<
+B>> final_score
+B<< ? unknown command: final_score
+B<<
+W>> final_score
+W<< ? unknown command: final_score
+W<<
+============================================
+Game 2
+============================================
+B>> boardsize 9
+B<< =
+B<<
+B>> clear_board
+B<< =
+B<<
+W>> boardsize 9
+W<< =
+W<<
+W>> clear_board
+W<< =
+W<<
+B>> genmove b
+B<< = E9
+B<<
+W>> play B E9
+W<< =
+W<<
+W>> genmove w
+W<< = G2
+W<<
+B>> play W G2
+B<< =
+B<<
+B>> genmove b
+B<< = J2
+B<<
+W>> play B J2
+W<< =
+W<<
+W>> genmove w
+W<< = D4
+W<<
+B>> play W D4
+B<< =
+B<<
+B>> genmove b
+B<< = H3
+B<<
+W>> play B H3
+W<< =
+W<<
+W>> genmove w
+W<< = H6
+W<<
+B>> play W H6
+B<< =
+B<<
+B>> genmove b
+B<< = F7
+B<<
+W>> play B F7
+W<< =
+W<<
+W>> genmove w
+W<< = C2
+W<<
+B>> play W C2
+B<< =
+B<<
+B>> genmove b
+B<< = F4
+B<<
+W>> play B F4
+W<< =
+W<<
+W>> genmove w
+W<< = D9
+W<<
+B>> play W D9
+B<< =
+B<<
+B>> genmove b
+B<< = G3
+B<<
+W>> play B G3
+W<< =
+W<<
+W>> genmove w
+W<< = B9
+W<<
+B>> play W B9
+B<< =
+B<<
+B>> genmove b
+B<< = H1
+B<<
+W>> play B H1
+W<< =
+W<<
+W>> genmove w
+W<< = E8
+W<<
+B>> play W E8
+B<< =
+B<<
+B>> genmove b
+B<< = A3
+B<<
+W>> play B A3
+W<< =
+W<<
+W>> genmove w
+W<< = B5
+W<<
+B>> play W B5
+B<< =
+B<<
+B>> genmove b
+B<< = F9
+B<<
+W>> play B F9
+W<< =
+W<<
+W>> genmove w
+W<< = B4
+W<<
+B>> play W B4
+B<< =
+B<<
+B>> genmove b
+B<< = A7
+B<<
+W>> play B A7
+W<< =
+W<<
+W>> genmove w
+W<< = E3
+W<<
+B>> play W E3
+B<< =
+B<<
+B>> genmove b
+B<< = G4
+B<<
+W>> play B G4
+W<< =
+W<<
+W>> genmove w
+W<< = E1
+W<<
+B>> play W E1
+B<< =
+B<<
+B>> genmove b
+B<< = A1
+B<<
+W>> play B A1
+W<< =
+W<<
+W>> genmove w
+W<< = J3
+W<<
+B>> play W J3
+B<< =
+B<<
+B>> genmove b
+B<< = C7
+B<<
+W>> play B C7
+W<< =
+W<<
+W>> genmove w
+W<< = J9
+W<<
+B>> play W J9
+B<< =
+B<<
+B>> genmove b
+B<< = J8
+B<<
+W>> play B J8
+W<< =
+W<<
+W>> genmove w
+W<< = A4
+W<<
+B>> play W A4
+B<< =
+B<<
+B>> genmove b
+B<< = E6
+B<<
+W>> play B E6
+W<< =
+W<<
+W>> genmove w
+W<< = D3
+W<<
+B>> play W D3
+B<< =
+B<<
+B>> genmove b
+B<< = J1
+B<<
+W>> play B J1
+W<< =
+W<<
+W>> genmove w
+W<< = D8
+W<<
+B>> play W D8
+B<< =
+B<<
+B>> genmove b
+B<< = C3
+B<<
+W>> play B C3
+W<< =
+W<<
+W>> genmove w
+W<< = G8
+W<<
+B>> play W G8
+B<< =
+B<<
+B>> genmove b
+B<< = H9
+B<<
+W>> play B H9
+W<< =
+W<<
+W>> genmove w
+W<< = H2
+W<<
+B>> play W H2
+B<< =
+B<<
+B>> genmove b
+B<< = D5
+B<<
+W>> play B D5
+W<< =
+W<<
+W>> genmove w
+W<< = J5
+W<<
+B>> play W J5
+B<< =
+B<<
+B>> genmove b
+B<< = B2
+B<<
+W>> play B B2
+W<< =
+W<<
+W>> genmove w
+W<< = B8
+W<<
+B>> play W B8
+B<< =
+B<<
+B>> genmove b
+B<< = A6
+B<<
+W>> play B A6
+W<< =
+W<<
+W>> genmove w
+W<< = J6
+W<<
+B>> play W J6
+B<< =
+B<<
+B>> genmove b
+B<< = A5
+B<<
+W>> play B A5
+W<< =
+W<<
+W>> genmove w
+W<< = H5
+W<<
+B>> play W H5
+B<< =
+B<<
+B>> genmove b
+B<< = G7
+B<<
+W>> play B G7
+W<< =
+W<<
+W>> genmove w
+W<< = G1
+W<<
+B>> play W G1
+B<< =
+B<<
+B>> genmove b
+B<< = B7
+B<<
+W>> play B B7
+W<< =
+W<<
+W>> genmove w
+W<< = C4
+W<<
+B>> play W C4
+B<< =
+B<<
+B>> genmove b
+B<< = H4
+B<<
+W>> play B H4
+W<< =
+W<<
+W>> genmove w
+W<< = G9
+W<<
+B>> play W G9
+B<< =
+B<<
+B>> genmove b
+B<< = F8
+B<<
+W>> play B F8
+W<< =
+W<<
+W>> genmove w
+W<< = B6
+W<<
+B>> play W B6
+B<< =
+B<<
+B>> genmove b
+B<< = C8
+B<<
+W>> play B C8
+W<< =
+W<<
+W>> genmove w
+W<< = F5
+W<<
+B>> play W F5
+B<< =
+B<<
+B>> genmove b
+B<< = J4
+B<<
+W>> play B J4
+W<< =
+W<<
+W>> genmove w
+W<< = E4
+W<<
+B>> play W E4
+B<< =
+B<<
+B>> genmove b
+B<< = H7
+B<<
+W>> play B H7
+W<< =
+W<<
+W>> genmove w
+W<< = F6
+W<<
+B>> play W F6
+B<< =
+B<<
+B>> genmove b
+B<< = G5
+B<<
+W>> play B G5
+W<< =
+W<<
+W>> genmove w
+W<< = C9
+W<<
+B>> play W C9
+B<< =
+B<<
+B>> genmove b
+B<< = E5
+B<<
+W>> play B E5
+W<< =
+W<<
+W>> genmove w
+W<< = A8
+W<<
+B>> play W A8
+B<< =
+B<<
+B>> genmove b
+B<< = E2
+B<<
+W>> play B E2
+W<< =
+W<<
+W>> genmove w
+W<< = D1
+W<<
+B>> play W D1
+B<< =
+B<<
+B>> genmove b
+B<< = H8
+B<<
+W>> play B H8
+W<< =
+W<<
+W>> genmove w
+W<< = F1
+W<<
+B>> play W F1
+B<< =
+B<<
+B>> genmove b
+B<< = B1
+B<<
+W>> play B B1
+W<< =
+W<<
+W>> genmove w
+W<< = C6
+W<<
+B>> play W C6
+B<< =
+B<<
+B>> genmove b
+B<< = E7
+B<<
+W>> play B E7
+W<< =
+W<<
+W>> genmove w
+W<< = G6
+W<<
+B>> play W G6
+B<< =
+B<<
+B>> genmove b
+B<< = F2
+B<<
+W>> play B F2
+W<< =
+W<<
+W>> genmove w
+W<< = D7
+W<<
+B>> play W D7
+B<< =
+B<<
+B>> genmove b
+B<< = B3
+B<<
+W>> play B B3
+W<< =
+W<<
+W>> genmove w
+W<< = A9
+W<<
+B>> play W A9
+B<< =
+B<<
+B>> genmove b
+B<< = F3
+B<<
+W>> play B F3
+W<< =
+W<<
+W>> genmove w
+W<< = A2
+W<<
+B>> play W A2
+B<< =
+B<<
+B>> genmove b
+B<< = C1
+B<<
+W>> play B C1
+W<< =
+W<<
+W>> genmove w
+W<< = J7
+W<<
+B>> play W J7
+B<< =
+B<<
+B>> genmove b
+B<< = D6
+B<<
+W>> play B D6
+W<< =
+W<<
+W>> genmove w
+W<< = D2
+W<<
+B>> play W D2
+B<< =
+B<<
+B>> genmove b
+B<< = C5
+B<<
+W>> play B C5
+W<< =
+W<<
+W>> genmove w
+W<< = PASS
+W<<
+B>> play W PASS
+B<< =
+B<<
+B>> genmove b
+B<< = PASS
+B<<
+W>> play B PASS
+W<< =
+W<<
+B>> final_score
+B<< ? unknown command: final_score
+B<<
+W>> final_score
+W<< ? unknown command: final_score
+W<<
+B>> quit
+B<< =
+B<<
+W>> quit
+W<< =
+W<<
