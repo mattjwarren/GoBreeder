@@ -204,9 +204,6 @@ class Mediator(object):
                     self.send('=\n\n')
                 elif 'play' in verb:
                     self.go_eng.receive_move(verb)
-                    if config.show_board_every_move:
-                        #todo make config value
-                        self.go_eng.render_board()
                 elif 'boardsize' in verb:
                     sys.stdout.write('=\n\n')
                     sys.stdout.flush()
