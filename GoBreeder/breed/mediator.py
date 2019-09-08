@@ -10,7 +10,11 @@ No responsibilities are accepted for any decisions made during and pertaining to
 import argparse
 import sys
 import os
-
+plotly=True
+try:
+    import plotly.express as px
+except:
+    plotly=False
 import breeder
 import vm
 import go_engine
@@ -179,7 +183,9 @@ class Mediator(object):
                     self.move_number+=1
                     if config.record_stats:
                         self.record_move_info(pc_history)
-                    
+                    if config.graph_move_pc:
+                        fig = px.line(pc_history, x="Time", y="PC", title='PC history for move %s' % self.move_number)
+                        fig.show()
                     
                     result=self.go_eng.play_move(move=move)
                     if result!='ok':

@@ -58,3 +58,5 @@ threads_or_processes=False
 
 #show cmd breeder executes to play two players against each other
 show_cmd=True
+
+graph_move_pc=True
