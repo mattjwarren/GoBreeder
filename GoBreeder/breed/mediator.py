@@ -190,7 +190,7 @@ class Mediator(object):
                         pch_df=pd.DataFrame(zip(pc_history,range(0,len(pc_history))),columns=['pc','idx'],index=range(0,len(pc_history)))
                         fig = px.line(pch_df, x="idx", y="pc", title='PC history for move %s' % self.move_number)
                         fig.show()
-                    if config.show_baord_every_move:
+                    if config.show_board_every_move:
                         #todo make config value
                         self.go_eng.render_board()
                     
@@ -204,6 +204,9 @@ class Mediator(object):
                     self.send('=\n\n')
                 elif 'play' in verb:
                     self.go_eng.receive_move(verb)
+                    if config.show_board_every_move:
+                        #todo make config value
+                        self.go_eng.render_board()
                 elif 'boardsize' in verb:
                     sys.stdout.write('=\n\n')
                     sys.stdout.flush()
