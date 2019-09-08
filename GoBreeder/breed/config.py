@@ -60,3 +60,4 @@ threads_or_processes=False
 show_cmd=True
 
 graph_move_pc=True
+show_board_every_move=True

@@ -13,8 +13,11 @@ import os
 plotly=True
 try:
     import plotly.express as px
+    import plotly.io as pio
+    pio.renderers.default='browser'
 except:
     plotly=False
+import pandas as pd
 import breeder
 import vm
 import go_engine
@@ -184,8 +187,13 @@ class Mediator(object):
                     if config.record_stats:
                         self.record_move_info(pc_history)
                     if config.graph_move_pc:
-                        fig = px.line(pc_history, x="Time", y="PC", title='PC history for move %s' % self.move_number)
+                        pch_df=pd.DataFrame(zip(pc_history,range(0,len(pc_history))),columns=['pc','idx'],index=range(0,len(pc_history)))
+                        fig = px.line(pch_df, x="idx", y="pc", title='PC history for move %s' % self.move_number)
                         fig.show()
+                    if config.show_baord_every_move:
+                        #todo make config value
+                        self.go_eng.render_board()
+                    
                     
                     result=self.go_eng.play_move(move=move)
                     if result!='ok':
