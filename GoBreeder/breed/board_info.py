@@ -7,6 +7,7 @@ def get_board_info(board=dict(),xmin=0,ymin=0,xmax=8,ymax=8):
     #WM winning moves (moves that win) //managed by mediator//
     #BG - black groups
     #WG - White groups
+    #testing gitkraken commit remove me
     
     blacks=data_structures.CircularList()
     whites=data_structures.CircularList()
