@@ -8,28 +8,30 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
 
 # ---------------------------------------------------------------------------
-# Java availability check
+# Windows Java availability check
 #
-# The enemy Go program (gosumi) is a JAR file.  It is launched by
-# gogui-twogtp.exe, which is a Windows binary executed via WSL2 interop.
-# Because gogui-twogtp.exe runs as a Windows process it cannot see the WSL2
-# Linux java directly; instead config.py wraps the command with 'wsl java …'
-# so that gogui-twogtp.exe delegates back to the WSL2 runtime.
+# The enemy Go program (gosumi) is a JAR file launched by gogui-twogtp.exe.
+# gogui-twogtp.exe is a Windows binary (WSL2 interop) so when it spawns
+# 'java -jar …' it runs a Windows process — it needs Windows Java on the
+# Windows PATH, NOT the WSL2 Linux java.
 #
-# This means we need Linux java (java / java.exe via 'wsl') to be present
-# inside WSL2.  If it is missing, every single move attempt causes Windows to
-# open a browser window prompting the user to install Java.
+# From WSL2 we can test Windows java via WSL2 interop: calling 'java.exe'
+# resolves to the Windows java binary through the interop PATH bridge.
+# If it is missing, every single game move causes Windows to open a browser
+# window prompting the user to install Java.
 # ---------------------------------------------------------------------------
-if ! command -v java &>/dev/null; then
-    echo "ERROR: 'java' not found in this WSL2 environment." >&2
+if ! java.exe -version &>/dev/null; then
+    echo "ERROR: Windows 'java.exe' not found or not accessible from WSL2." >&2
     echo "" >&2
-    echo "The gosumi opponent is a Java JAR launched by gogui-twogtp.exe (a Windows" >&2
-    echo "binary). config.py routes the java call back through WSL2 using 'wsl java'." >&2
-    echo "Please install a JRE/JDK inside WSL2 before deploying, e.g.:" >&2
-    echo "  sudo apt-get install -y default-jre" >&2
+    echo "gogui-twogtp.exe is a Windows process and needs Windows Java on the" >&2
+    echo "Windows PATH.  Please install a Windows JRE/JDK, e.g.:" >&2
+    echo "  https://adoptium.net/  (Temurin JRE is sufficient)" >&2
+    echo "" >&2
+    echo "After installing, ensure 'java' is on your Windows PATH and restart" >&2
+    echo "your WSL2 session so the interop PATH is refreshed." >&2
     exit 1
 fi
-echo "Java found: $(java -version 2>&1 | head -1)"
+echo "Windows Java found: $(java.exe -version 2>&1 | head -1)"
 
 instance=${1}
 
