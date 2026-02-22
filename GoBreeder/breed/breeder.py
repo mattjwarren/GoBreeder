@@ -111,47 +111,6 @@ class Breeder:
         sout, serr = game_process.communicate()
         returncode = game_process.returncode
 
-    def simulate_gtp_game(
-        self, player="black", player_program=config.player_program, enemy_program=config.enemy_program
-    ):
-        enemy_player = "black" if player == "white" else "white"
-        # Put genome to test into genome_test file
-        # get command for program to test against
-        self.log("Simulating GTP game for breeding\n")
-        # create batch fie, run that?
-        if self.switch_players:
-            n = enemy_player
-            enemy_player = player
-            player = n
-            self.switch_players = False
-        else:
-            self.switch_players = True
-        self.log(f"\tI AM PLAYER {player}\n")
-        genome_to_run = self.population[self.current_simulation_member]
-        breeding_file = open("breeding_genome.py", "w")
-        breeding_file.write(repr(genome_to_run.dna) + "\n")
-        breeding_file.close()
-
-        cmdstr = "%s -%s %s -%s %s -size %d -referee %s -auto -verbose" % (
-            config.two_gtp_command,
-            player,
-            player_program,
-            enemy_player,
-            enemy_program,
-            config.board_size,
-            config.referee_program_command,
-        )
-        if config.show_cmd:
-            self.log("CMDSTRING:" + cmdstr)
-        # Use shlex.split to avoid shell=True with unvalidated config paths.
-        args = shlex.split(cmdstr)
-        self._logger.debug("BREEDER: subprocess args: %s", args)
-        game_process = subprocess.Popen(
-            args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        sout, serr = game_process.communicate()
-        returncode = game_process.returncode
-
         self._logger.debug("BREEDER: subprocess returncode: %d", returncode)
         if sout.strip():
             self._logger.debug("BREEDER: subprocess stdout:\n%s", sout)
@@ -194,8 +153,30 @@ class Breeder:
                     if len(tokens) >= 3 and tokens[-3].lower() == player.lower():
                         won = True
 
+        # Extract the final board state rendered by the child process in its quit handler.
+        # Child calls go_eng.render_board() unconditionally on receiving 'quit'; each row
+        # is logged as "ENGINE: \t<row>" and goes to child's stderr (captured in serr here).
+        board_rows = []
+        for ln in serr.split("\n"):
+            if "ENGINE:" not in ln:
+                continue
+            idx = ln.find("ENGINE:")
+            msg = ln[idx + 7:]  # slice past "ENGINE:"
+            if msg.startswith(" "):
+                msg = msg[1:]  # strip the single space from "ENGINE: <msg>"
+            if msg.startswith("\t"):
+                board_rows.append(msg.strip())
+
         # Log a clear per-game summary.
         genome_hash = str(genome_to_run)
+        if board_rows:
+            board_display = "\n".join(f"  {row}" for row in board_rows)
+            self._logger.debug(
+                "BREEDER: --- FINAL BOARD (player=%s) ---\n%s\n---",
+                player, board_display,
+            )
+        else:
+            self._logger.debug("BREEDER: (no board state found in child output)")
         self._logger.debug(
             "BREEDER: --- GAME RESULT --- player=%s result=%s moves=%d i_win=%s genome=%s",
             player, result_str, moves, won, genome_hash,
