@@ -10,6 +10,8 @@ requires-python = ">=3.10"
 dependencies = [
     "pandas>=2.0",
     "plotly>=5.0",
+    "pyside6>=6.6",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -19,10 +21,14 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
     "pandas-stubs",
+    "pytest-qt>=4.4",
 ]
 
+[project.scripts]
+gobreeder-gui = "GoBreeder.gui.app:main"
+
 [tool.hatch.build.targets.wheel]
-packages = ["GoBreeder/breed"]
+packages = ["GoBreeder/breed", "GoBreeder/gui"]
 
 [tool.ruff]
 line-length = 120
@@ -43,4 +49,5 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-qt>=4.5.0",
 ]
