@@ -35,6 +35,16 @@ _OP_DEREF_REG = 5     # read self.memory[self.memory[getattr(self, attr) % max] 
 _OP_MOV_REG = 6       # mov destination: plain register name kept as string
 _OP_STN = 7           # STN_bp_op board-pointer operation: val = (bp_str, op_str)
 
+# Frozenset of all program-accessible register names (without the "reg_" prefix).
+# Used by __getattr__ / __setattr__ to forward legacy reg_* attribute access to
+# self.regs dict.
+_ACCESSIBLE_REGS: frozenset[str] = frozenset(
+    ["X", "Y", "WXY", "RES", "CRY", "SGN", "LOG", "STN", "PLAYER"]
+    + [f"X{n}" for n in range(8)]
+    + [f"Y{n}" for n in range(8)]
+    + [f"GP{n}" for n in range(8)]
+)
+
 
 class GoVM:
     working_X_registers = ["X" + str(N) for N in range(0, 8)]  # change in gogenmoe to
@@ -110,24 +120,72 @@ class GoVM:
 
     player_reg_lookup = {"black": -1, "white": 1}
 
+    # ------------------------------------------------------------------
+    # __slots__: removes per-instance __dict__, making every attribute
+    # access a C-level slot lookup – faster writes in opcode methods and
+    # reduced memory footprint per VM instance.
+    # Program-accessible registers are stored in self.regs (a slotted dict);
+    # control variables (reg_pc, reg_clock, reg_HALT, …) are separate slots.
+    # ------------------------------------------------------------------
+    __slots__ = (
+        "regs",            # program-accessible register dict
+        "max_memoryons", "version",
+        "board", "program", "_compiled_program",
+        "reg_pc", "reg_clock", "reg_HALT",
+        "PC_INTERRUPT", "PC_INTERRUPT_A",
+        "SPECIAL_VAL_INTERRUPT", "SPECIAL_VAL_INTERRUPT_A",
+        "old_pc",
+        "memory", "stack_memory",
+        "bi_blacks", "bi_whites", "bi_spaces",
+        "bi_white_freedoms", "bi_black_freedoms",
+        "bi_legal_moves", "bi_illegal_moves", "bi_all_stones",
+    )
+
     def __init__(self, memoryons=640 * 1024):  # ought to be enough for anyone
         self.max_memoryons = memoryons
         self.version = "1.0"
+
+    # ------------------------------------------------------------------
+    # Backward-compat attribute forwarding for tests / external callers.
+    # Opcode methods and _resolve_operands use self.regs[name] directly
+    # (no __getattr__/__setattr__ overhead on the hot path).
+    # ------------------------------------------------------------------
+
+    def __getattr__(self, name: str) -> object:
+        """Forward reg_* reads to self.regs for program-accessible registers."""
+        if name.startswith("reg_"):
+            reg_name = name[4:]
+            if reg_name in _ACCESSIBLE_REGS:
+                try:
+                    return object.__getattribute__(self, "regs")[reg_name]
+                except (AttributeError, KeyError):
+                    pass
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """Forward reg_* writes to self.regs for program-accessible registers."""
+        if name.startswith("reg_"):
+            reg_name = name[4:]
+            if reg_name in _ACCESSIBLE_REGS:
+                self.regs[reg_name] = value
+                return
+        super().__setattr__(name, value)
 
     # Run the genome, with the board info (should metadata the board stuff out as is Go sepcific)
     def get_move(self, board=dict(), player=None, program=list()):
         self.boot(board=board, program=program)
 
-        self.reg_PLAYER = GoVM.player_reg_lookup[player]
-        log("exec starts:")
-        log(datetime.datetime.now())
+        self.regs["PLAYER"] = GoVM.player_reg_lookup[player]
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("exec starts: %s", datetime.datetime.now())
         pc_history = self.execute_program(
             max_clocks=4000
         )  # up max clocks to twice. (5->10 hundred) what effect on current pop?
-        log(datetime.datetime.now())
-        log("exec ends:")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("exec ends: %s", datetime.datetime.now())
 
-        move = (self.reg_X % config.board_size, self.reg_Y % config.board_size)
+        regs = self.regs
+        move = (regs["X"] % config.board_size, regs["Y"] % config.board_size)
         self.set_board_info_memory()  # TODO: FAST!
         return move, pc_history
 
@@ -136,31 +194,24 @@ class GoVM:
         self.initialise_memory()
 
     def initialise_registers(self):
-        # internal control
-        self.reg_pc = 0  # pc and clock in lowercase for now,
-        # as they are internal control registers
-        # not program space accessible. should extract/design out.
-
+        # Build the register dict first so that subsequent assignments below
+        # (via __setattr__) can route into it correctly.
+        self.regs: dict = {
+            "X": 0, "Y": 0, "RES": 0, "CRY": 0, "SGN": 0, "LOG": 1,
+            "STN": (0, 0), "WXY": 0, "PLAYER": 0,
+            **{f"X{n}": 0 for n in range(8)},
+            **{f"Y{n}": 0 for n in range(8)},
+            **{f"GP{n}": 0 for n in range(8)},
+        }
+        # internal control (kept as plain slots, not in regs)
+        self.reg_pc = 0
         self.PC_INTERRUPT = False
         self.PC_INTERRUPT_A = 0
         self.SPECIAL_VAL_INTERRUPT = False
         self.SPECIAL_VAL_INTERRUPT_A = False
-        self.reg_clock = 0  # see self.reg_pc
+        self.reg_clock = 0
         self.reg_HALT = False
-        #
-
-        self.reg_X = 0  #
-        self.reg_Y = 0  # X and Y are also known as the move_registers
-        self.reg_RES = 0
-        self.reg_CRY = 0
-        self.reg_SGN = 0
-        self.reg_LOG = 1
-        self.reg_STN = (0, 0)
-        self.reg_WXY = 0
-
-        [setattr(self, "reg_" + N, 0) for N in GoVM.general_purpose_registers]
-        [setattr(self, "reg_" + N, 0) for N in GoVM.working_X_registers]
-        [setattr(self, "reg_" + N, 0) for N in GoVM.working_Y_registers]
+        self.old_pc = 0
 
     def initialise_memory(self):
         self.set_board_info_memory()
@@ -184,9 +235,17 @@ class GoVM:
         self.board = board
         self.program = program
         self.initialise_memories()
-        # Pre-compile instruction operands once so the hot loop avoids string
-        # parsing on every clock tick.
-        self._compiled_program = self._compile_program(program)
+        # Avoid re-compiling the same genome on every move within a game.
+        # GoGenome objects support arbitrary attribute storage; fall back to
+        # re-compilation for plain lists and other types that don't.
+        compiled = getattr(program, "_vm_compiled", None)
+        if compiled is None:
+            compiled = self._compile_program(program)
+            try:
+                program._vm_compiled = compiled
+            except AttributeError:
+                pass  # program type doesn't support attribute storage (e.g. plain list)
+        self._compiled_program = compiled
 
     # ------------------------------------------------------------------
     # Genome pre-compiler – called once per boot(), not per clock tick.
@@ -220,19 +279,19 @@ class GoVM:
                     return (_OP_MEM_CONST, addr)
                 return (_OP_DEREF_CONST, addr)
             else:
-                reg_attr = "reg_" + mem_loc_str
+                reg_attr = mem_loc_str  # bare register name (no "reg_" prefix)
                 if first == "m":
                     return (_OP_MEM_REG, reg_attr)
                 return (_OP_DEREF_REG, reg_attr)
 
         # Register name
         if idx == 1 and opcode == "mov":
-            # Destination register: keep the plain name for setattr in opcode_mov.
+            # Destination register: keep the plain name for opcode_mov.
             return (_OP_MOV_REG, opdatum)
         if opdatum[:3] == "STN":
             tokens = opdatum.split("_")
             return (_OP_STN, (tokens[1], tokens[2]))
-        return (_OP_REG, "reg_" + opdatum)
+        return (_OP_REG, opdatum)  # bare register name (no "reg_" prefix)
 
     def _compile_program(self, program: list) -> list:
         """Pre-parse every instruction into (opcode_fn, [tagged_ops]) tuples.
@@ -256,27 +315,28 @@ class GoVM:
         """Resolve pre-compiled operand tags to runtime values.
 
         This replaces canonicalise() in the hot execution loop.  It uses
-        integer tag comparisons instead of string parsing, which is
-        measurably faster in CPython when called thousands of times per move.
+        integer tag comparisons instead of string parsing, and direct dict
+        lookups on self.regs instead of getattr() machinery.
         """
         if not tagged_ops:
             return []
         memory = self.memory
         max_mem = self.max_memoryons
+        regs = self.regs  # local alias: avoids repeated slot lookup per iteration
         result: list = []
         for tag, val in tagged_ops:
             if tag == _OP_CONST:
                 result.append(val)
             elif tag == _OP_REG:
-                result.append(getattr(self, val))
+                result.append(regs[val])
             elif tag == _OP_MEM_CONST:
                 result.append(memory[val])
             elif tag == _OP_MEM_REG:
-                result.append(memory[getattr(self, val) % max_mem])
+                result.append(memory[regs[val] % max_mem])
             elif tag == _OP_DEREF_CONST:
                 result.append(memory[memory[val] % max_mem])
             elif tag == _OP_DEREF_REG:
-                loc = getattr(self, val) % max_mem
+                loc = regs[val] % max_mem
                 result.append(memory[memory[loc] % max_mem])
             elif tag == _OP_MOV_REG:
                 result.append(val)       # register name string – used by opcode_mov
@@ -340,7 +400,7 @@ class GoVM:
         return new_opdata
 
     def process_STN_op(self, bp=None, op=None):
-        if self.reg_STN is None:
+        if self.regs["STN"] is None:
             return
         if op == "STATS":
             return self.stn_STATS(bp)
@@ -348,7 +408,7 @@ class GoVM:
             return self.stn_COORDS(op, bp)
 
     def stn_STATS(self, bp):
-        coords = self.reg_STN
+        coords = self.regs["STN"]
         x, y = coords
         offset = self.board_pointer_offsets[bp]
         xo, yo = offset
@@ -386,7 +446,7 @@ class GoVM:
 
     def stn_COORDS(self, op, bp):
         xo, yo = self.board_pointer_offsets[bp]
-        xs, ys = self.reg_STN
+        xs, ys = self.regs["STN"]
         xc = xs + xo
         yc = ys + yo
         if "X" in op:
@@ -436,222 +496,231 @@ class GoVM:
         return opdata[0], opdata[1]
 
     def opcode_sstn(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_STN = (A, B)
+        self.regs["STN"] = (opdata[0], opdata[1])
 
     def opcode_nstn(self, opdata):
-        self.reg_STN = self.bi_all_stones.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_all_stones.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rstn(self, opdata):
         self.bi_all_stones.reverse()
 
     def opcode_nblk(self, opdata):
-        self.reg_STN = self.bi_blacks.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_blacks.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rblk(self, opdata):
         self.bi_blacks.reverse()
 
     def opcode_nwht(self, opdata):
-        self.reg_STN = self.bi_whites.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_whites.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rwht(self, opdata):
         self.bi_whites.reverse()
 
     def opcode_nfrn(self, opdata):
-        if self.reg_PLAYER == -1:
-            self.reg_STN = self.bi_blacks.next()
+        if self.regs["PLAYER"] == -1:
+            self.regs["STN"] = self.bi_blacks.next()
         else:
-            self.reg_STN = self.bi_whites.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+            self.regs["STN"] = self.bi_whites.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rfrn(self, opdata):
-        if self.reg_PLAYER == -1:
+        if self.regs["PLAYER"] == -1:
             self.bi_blacks.reverse()
         else:
             self.bi_whites.reverse()
 
     def opcode_nnme(self, opdata):
-        if self.reg_PLAYER == -1:
-            self.reg_STN = self.bi_whites.next()
+        if self.regs["PLAYER"] == -1:
+            self.regs["STN"] = self.bi_whites.next()
         else:
-            self.reg_STN = self.bi_blacks.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+            self.regs["STN"] = self.bi_blacks.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rnme(self, opdata):
-        if self.reg_PLAYER == -1:
+        if self.regs["PLAYER"] == -1:
             self.bi_whites.reverse()
         else:
             self.bi_blacks.reverse()
 
     def opcode_nspc(self, opdata):
-        self.reg_STN = self.bi_spaces.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_spaces.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rspc(self, opdata):
         self.bi_spaces.reverse()
 
     def opcode_nblkf(self, opdata):
-        self.reg_STN = self.bi_black_freedoms.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_black_freedoms.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rblkf(self, opdata):
         self.bi_black_freedoms.reverse()
 
     def opcode_nwhtf(self, opdata):
-        self.reg_STN = self.bi_white_freedoms.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+        self.regs["STN"] = self.bi_white_freedoms.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rwhtf(self, opdata):
         self.bi_white_freedoms.reverse()
 
     def opcode_nfrnf(self, opdata):
-        if self.reg_PLAYER == -1:
-            self.reg_STN = self.bi_black_freedoms.next()
+        if self.regs["PLAYER"] == -1:
+            self.regs["STN"] = self.bi_black_freedoms.next()
         else:
-            self.reg_STN = self.bi_white_freedoms.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+            self.regs["STN"] = self.bi_white_freedoms.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rfrnf(self, opdata):
-        if self.reg_PLAYER == -1:
+        if self.regs["PLAYER"] == -1:
             self.bi_black_freedoms.reverse()
         else:
             self.bi_white_freedoms.reverse()
 
     def opcode_nnmef(self, opdata):
-        if self.reg_PLAYER == -1:
-            self.reg_STN = self.bi_white_freedoms.next()
+        if self.regs["PLAYER"] == -1:
+            self.regs["STN"] = self.bi_white_freedoms.next()
         else:
-            self.reg_STN = self.bi_black_freedoms.next()
-        if self.reg_STN == 0:
-            self.reg_STN = (0, 0)
+            self.regs["STN"] = self.bi_black_freedoms.next()
+        if self.regs["STN"] == 0:
+            self.regs["STN"] = (0, 0)
 
     def opcode_rnmef(self, opdata):
-        if self.reg_PLAYER == -1:
+        if self.regs["PLAYER"] == -1:
             self.bi_white_freedoms.reverse()
         else:
             self.bi_black_freedoms.reverse()
 
     def opcode_iwxy(self, opdata):
-        self.reg_WXY += 1
-        if self.reg_WXY > 7:
-            self.reg_WXY = 0
+        self.regs["WXY"] += 1
+        if self.regs["WXY"] > 7:
+            self.regs["WXY"] = 0
 
     def opcode_dwxy(self, opdata):
-        self.reg_WXY -= 1
-        if self.reg_WXY < 0:
-            self.reg_WXY = 7
+        self.regs["WXY"] -= 1
+        if self.regs["WXY"] < 0:
+            self.regs["WXY"] = 7
 
     def opcode_add(self, opdata):
-        # print '\tEXEC: opcode_add'
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A + B
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] + opdata[1]
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_sub(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A - B
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] - opdata[1]
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_incr(self, opdata):  # Taking no data / accept empty or nothing passed, or None?
         # turns out, every opcode gets a list of 2 data items, and only inspects what they need. extra cruft is cruft! so sue me!
-        self.opcode_add((self.reg_RES, 1))
+        regs = self.regs
+        regs["RES"] = regs["RES"] + 1
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_decr(self, opdata):
-        self.opcode_sub((self.reg_RES, 1))
+        regs = self.regs
+        regs["RES"] = regs["RES"] - 1
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_mul(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A * B
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] * opdata[1]
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_div(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
+        regs = self.regs
+        A, B = opdata[0], opdata[1]
         try:
-            self.reg_RES = A / B
-            self.reg_CRY = A % B
+            regs["RES"] = A / B
+            regs["CRY"] = A % B
         except ZeroDivisionError:
-            self.reg_RES = 0
-            self.reg_CRY = 0
-        self.set_SGN()
+            regs["RES"] = 0
+            regs["CRY"] = 0
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
+        else:
+            regs["SGN"] = 1
 
     def opcode_cmpe(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        if A == B:
-            self.reg_LOG = 1
-        else:
-            self.reg_LOG = 0
+        self.regs["LOG"] = 1 if opdata[0] == opdata[1] else 0
 
     def opcode_cmpne(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        if A != B:
-            self.reg_LOG = 1
-        else:
-            self.reg_LOG = 0
+        self.regs["LOG"] = 1 if opdata[0] != opdata[1] else 0
 
     def opcode_cmp0(self, opdata):
-        A = opdata[0]
-        if A == 0:
-            self.reg_LOG = 1
-        else:
-            self.reg_LOG = 0
+        self.regs["LOG"] = 1 if opdata[0] == 0 else 0
 
     def opcode_cmplt(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        if A < B:
-            self.reg_LOG = 1
-        else:
-            self.reg_LOG = 0
+        self.regs["LOG"] = 1 if opdata[0] < opdata[1] else 0
 
     def opcode_cmpgt(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        if A > B:
-            self.reg_LOG = 1
-        else:
-            self.reg_LOG = 0
+        self.regs["LOG"] = 1 if opdata[0] > opdata[1] else 0
 
     def opcode_and(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A & B
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] & opdata[1]
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def opcode_or(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A | B
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] | opdata[1]
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def opcode_not(self, opdata):
-        A = opdata[0]
-        self.reg_RES = ~A
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = ~opdata[0]
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def opcode_xor(self, opdata):
-        A = opdata[0]
-        B = opdata[1]
-        self.reg_RES = A ^ B  # is that really xor?
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = opdata[0] ^ opdata[1]
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def opcode_jmp(self, opdata):  # jmp, not call. so dont push/pop reg_pc + jmp onto the stack
         A = opdata[0]
@@ -668,25 +737,25 @@ class GoVM:
 
     def opcode_jmp0(self, opdata):
         A = opdata[0]
-        if self.reg_RES == 0:
+        if self.regs["RES"] == 0:
             self.opcode_jmp((A,))
 
     def opcode_jmpl(self, opdata):
         A = opdata[0]
-        if self.reg_LOG:
+        if self.regs["LOG"]:
             self.opcode_jmp((A,))
 
     def opcode_jmprl(self, opdata):
         A = opdata[0]
         if A != 0:
             abs_A = self.reg_pc + A
-            if self.reg_LOG:
+            if self.regs["LOG"]:
                 self.opcode_jmp((abs_A,))
 
     def opcode_jmpr0(self, opdata):
         A = opdata[0]
         if A != 0:
-            if self.reg_RES == 0:
+            if self.regs["RES"] == 0:
                 abs_A = self.reg_pc + A
                 self.opcode_jmpr((abs_A,))
 
@@ -705,28 +774,28 @@ class GoVM:
     def opcode_call0(self, opdata):
         A = opdata[0]
         if A != 0:
-            if self.reg_RES == 0:
+            if self.regs["RES"] == 0:
                 self.push_pc()
                 self.opcode_jmp((A,))
 
     def opcode_callr0(self, opdata):
         A = opdata[0]
         if A != 0:
-            if self.reg_RES == 0:
+            if self.regs["RES"] == 0:
                 self.push_pc()
                 self.opcode_jmpr((A,))
 
     def opcode_calll(self, opdata):
         A = opdata[0]
         if A != 0:
-            if self.reg_LOG:
+            if self.regs["LOG"]:
                 self.push_pc()
                 self.opcode_jmp((A,))
 
     def opcode_callrl(self, opdata):
         A = opdata[0]
         if A != 0:
-            if self.reg_LOG:
+            if self.regs["LOG"]:
                 self.push_pc()
                 self.opcode_jmpr((A,))
 
@@ -737,17 +806,15 @@ class GoVM:
             self.opcode_jmp((A,))
 
     def opcode_ret0(self, opdata):
-        if self.reg_RES == 0:
+        if self.regs["RES"] == 0:
             A = self.pop_pc()
             if A is not None:
-                # print '\t\t..>returning'
                 self.opcode_jmp((A,))
 
     def opcode_retl(self, opdata):
-        if self.reg_LOG:
+        if self.regs["LOG"]:
             A = self.pop_pc()
             if A is not None:
-                # print '\t\t..>returning'
                 self.opcode_jmp((A,))
 
     def opcode_mov(self, opdata):
@@ -755,14 +822,17 @@ class GoVM:
         if A is None:
             A = 0
         B = opdata[1]
-        if str(B)[0] not in "0123456789-":
+        if isinstance(B, str):
             if B == "WXY":
-                A = A % config.board_size  ##Also all in modded registers
-            setattr(self, "reg_" + B, A)
+                A = A % config.board_size
+            self.regs[B] = A
         else:
             # Clamp to signed 64-bit range for array.array('q') compatibility.
             self.memory[B % self.max_memoryons] = int(A) & 0x7FFFFFFFFFFFFFFF
-        self.set_SGN()
+        regs = self.regs
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def opcode_push(self, opdata):
         A = opdata[0]
@@ -772,20 +842,24 @@ class GoVM:
         A = self.pop()
         if A is None:
             A = 0
-        self.reg_RES = A
+        self.regs["RES"] = A
 
     def opcode_rnd(self, opdata: list) -> None:
         """Generate a random integer in [-rand_max/2, rand_max/2) and store in RES."""
-        self.reg_RES = int(random.random() * config.rand_max) - (config.rand_max // 2)
-        self.set_SGN()
+        regs = self.regs
+        regs["RES"] = int(random.random() * config.rand_max) - (config.rand_max // 2)
+        if regs["RES"] < 0: regs["SGN"] = -1
+        elif regs["RES"] == 0: regs["SGN"] = 0
+        else: regs["SGN"] = 1
 
     def set_SGN(self):
-        if self.reg_RES < 0:
-            self.reg_SGN = -1
-        elif self.reg_RES == 0:
-            self.reg_SGN = 0
+        regs = self.regs
+        if regs["RES"] < 0:
+            regs["SGN"] = -1
+        elif regs["RES"] == 0:
+            regs["SGN"] = 0
         else:
-            self.reg_SGN = 1
+            regs["SGN"] = 1
 
     def push_pc(self):
         self.push(self.reg_pc + 1)  # MEMORY_OUT_OF_BOUNDS STARTS HERE.
@@ -850,29 +924,30 @@ class GoVM:
             fn(self, opdata)
 
             if _debug:
+                regs = self.regs
                 logger.debug(
                     "\top: %s%s, pc %d, clk %d, RES %d, CRY %d, SGN %d, LOG %d, X:Y %d:%d",
                     opcode, opdata,
                     self.reg_pc, self.reg_clock,
-                    self.reg_RES, self.reg_CRY, self.reg_SGN, self.reg_LOG,
-                    self.reg_X, self.reg_Y,
+                    regs["RES"], regs["CRY"], regs["SGN"], regs["LOG"],
+                    regs["X"], regs["Y"],
                 )
                 logger.debug(
                     "\tGP: %d %d %d %d %d %d %d %d",
-                    self.reg_GP0, self.reg_GP1, self.reg_GP2, self.reg_GP3,
-                    self.reg_GP4, self.reg_GP5, self.reg_GP6, self.reg_GP7,
+                    regs["GP0"], regs["GP1"], regs["GP2"], regs["GP3"],
+                    regs["GP4"], regs["GP5"], regs["GP6"], regs["GP7"],
                 )
                 logger.debug(
                     "\tGX: %d %d %d %d %d %d %d %d",
-                    self.reg_X0, self.reg_X1, self.reg_X2, self.reg_X3,
-                    self.reg_X4, self.reg_X5, self.reg_X6, self.reg_X7,
+                    regs["X0"], regs["X1"], regs["X2"], regs["X3"],
+                    regs["X4"], regs["X5"], regs["X6"], regs["X7"],
                 )
                 logger.debug(
                     "\tGY: %d %d %d %d %d %d %d %d",
-                    self.reg_Y0, self.reg_Y1, self.reg_Y2, self.reg_Y3,
-                    self.reg_Y4, self.reg_Y5, self.reg_Y6, self.reg_Y7,
+                    regs["Y0"], regs["Y1"], regs["Y2"], regs["Y3"],
+                    regs["Y4"], regs["Y5"], regs["Y6"], regs["Y7"],
                 )
-                logger.debug("\tWXY %d PLAYER %d Stone %s", self.reg_WXY, self.reg_PLAYER, self.reg_STN)
+                logger.debug("\tWXY %d PLAYER %d Stone %s", regs["WXY"], regs["PLAYER"], regs["STN"])
                 logger.debug("\twhites%s", self.bi_whites)
                 logger.debug("\tblacks%s", self.bi_blacks)
                 logger.debug("\tspaces%s", self.bi_spaces._direction)

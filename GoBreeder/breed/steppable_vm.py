@@ -87,6 +87,9 @@ class VMStepSnapshot(BaseModel):
 class SteppableGoVM(vm.GoVM):
     """GoVM subclass with generator-based step execution."""
 
+    # Inherit all slots from GoVM without adding a __dict__.
+    __slots__ = ()
+
     # Type annotations for parent-class attributes that are set dynamically in
     # GoVM.boot() / GoVM.initialise_registers().  These declarations shadow the
     # untyped parent attributes so mypy can reason about them here.
@@ -127,56 +130,57 @@ class SteppableGoVM(vm.GoVM):
         """Capture the complete current VM state as a snapshot."""
         board_str_keys = {str(k): v for k, v in self.board.items()}
 
-        stn = self.reg_STN if isinstance(self.reg_STN, tuple) else (0, 0)
+        regs = self.regs
+        stn = regs["STN"] if isinstance(regs["STN"], tuple) else (0, 0)
 
         return VMStepSnapshot(
             clock=self.reg_clock,
             pc=self.reg_pc,
             current_instruction=current_instruction,
             canonical_opdata=canonical_opdata or [],
-            reg_X=self.reg_X,
-            reg_Y=self.reg_Y,
-            reg_RES=self.reg_RES,
-            reg_CRY=self.reg_CRY,
-            reg_SGN=self.reg_SGN,
-            reg_LOG=self.reg_LOG,
+            reg_X=regs["X"],
+            reg_Y=regs["Y"],
+            reg_RES=regs["RES"],
+            reg_CRY=regs["CRY"],
+            reg_SGN=regs["SGN"],
+            reg_LOG=regs["LOG"],
             reg_STN=stn,
-            reg_WXY=self.reg_WXY,
-            reg_PLAYER=self.reg_PLAYER,
+            reg_WXY=regs["WXY"],
+            reg_PLAYER=regs["PLAYER"],
             reg_PC_INTERRUPT=self.PC_INTERRUPT,
             reg_PC_INTERRUPT_A=self.PC_INTERRUPT_A,
             reg_HALT=self.reg_HALT,
-            reg_X0=self.reg_X0,
-            reg_X1=self.reg_X1,
-            reg_X2=self.reg_X2,
-            reg_X3=self.reg_X3,
-            reg_X4=self.reg_X4,
-            reg_X5=self.reg_X5,
-            reg_X6=self.reg_X6,
-            reg_X7=self.reg_X7,
-            reg_Y0=self.reg_Y0,
-            reg_Y1=self.reg_Y1,
-            reg_Y2=self.reg_Y2,
-            reg_Y3=self.reg_Y3,
-            reg_Y4=self.reg_Y4,
-            reg_Y5=self.reg_Y5,
-            reg_Y6=self.reg_Y6,
-            reg_Y7=self.reg_Y7,
-            reg_GP0=self.reg_GP0,
-            reg_GP1=self.reg_GP1,
-            reg_GP2=self.reg_GP2,
-            reg_GP3=self.reg_GP3,
-            reg_GP4=self.reg_GP4,
-            reg_GP5=self.reg_GP5,
-            reg_GP6=self.reg_GP6,
-            reg_GP7=self.reg_GP7,
+            reg_X0=regs["X0"],
+            reg_X1=regs["X1"],
+            reg_X2=regs["X2"],
+            reg_X3=regs["X3"],
+            reg_X4=regs["X4"],
+            reg_X5=regs["X5"],
+            reg_X6=regs["X6"],
+            reg_X7=regs["X7"],
+            reg_Y0=regs["Y0"],
+            reg_Y1=regs["Y1"],
+            reg_Y2=regs["Y2"],
+            reg_Y3=regs["Y3"],
+            reg_Y4=regs["Y4"],
+            reg_Y5=regs["Y5"],
+            reg_Y6=regs["Y6"],
+            reg_Y7=regs["Y7"],
+            reg_GP0=regs["GP0"],
+            reg_GP1=regs["GP1"],
+            reg_GP2=regs["GP2"],
+            reg_GP3=regs["GP3"],
+            reg_GP4=regs["GP4"],
+            reg_GP5=regs["GP5"],
+            reg_GP6=regs["GP6"],
+            reg_GP7=regs["GP7"],
             stack_top_10=list(self.stack_memory[-10:]),
             memory_0_to_50=list(self.memory[0:50]),
             board_info=self._capture_board_info(),
             board=board_str_keys,
             halt=bool(self.reg_HALT),
-            move_x=self.reg_X,
-            move_y=self.reg_Y,
+            move_x=regs["X"],
+            move_y=regs["Y"],
         )
 
     def step_generator(self, max_clocks: int = 4000) -> Generator[VMStepSnapshot, None, None]:
@@ -236,7 +240,7 @@ class SteppableGoVM(vm.GoVM):
     ) -> tuple:
         """Override get_move to use step_generator for identical results to GoVM."""
         self.boot(board=board, program=program)
-        self.reg_PLAYER = vm.GoVM.player_reg_lookup[player]
+        self.regs["PLAYER"] = vm.GoVM.player_reg_lookup[player]
 
         logger.debug("SteppableGoVM exec starts")
 
@@ -246,6 +250,7 @@ class SteppableGoVM(vm.GoVM):
 
         logger.debug("SteppableGoVM exec ends")
 
-        move = (self.reg_X % config.board_size, self.reg_Y % config.board_size)
+        regs = self.regs
+        move = (regs["X"] % config.board_size, regs["Y"] % config.board_size)
         self.set_board_info_memory()
         return move, []
