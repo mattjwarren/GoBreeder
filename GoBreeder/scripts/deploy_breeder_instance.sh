@@ -1,22 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# REPO_DIR  = the inner GoBreeder/ dir (sibling of scripts/)
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# DEPLOY_BASE = clone root; instances are created here as siblings of GoBreeder/
+DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
+
 instance=${1}
 
-#root dir for instances
-deploy_base=/home/matth/breeders
-# WSL2: basepath is a plain Linux path inside the WSL2 filesystem
-breed_exec_base="${deploy_base}/GoBreeder_${instance}/breed/"
+deploy_base="${DEPLOY_BASE}"
+target_dir="${deploy_base}/GoBreeder_${instance}"
 
-target_dir=${deploy_base}/GoBreeder_${instance}
-
-if [ -d ${target_dir} ]
-then
-	rm -rf ${target_dir}
+if [ -d "${target_dir}" ]; then
+    rm -rf "${target_dir}"
 fi
 
-mkdir -p ${target_dir}
+mkdir -p "${target_dir}"
 
-cp -R ${deploy_base}/GoBreeder/* ${target_dir}
-
-#update basepath in config
-cat ${target_dir}/breed/config.py | sed -E -e "s!^basepath=.*!basepath=\"${breed_exec_base}\"!g" > ${target_dir}/breed/config.py_sed
-mv ${target_dir}/breed/config.py_sed ${target_dir}/breed/config.py
+# Copy the inner repo dir (breed/, scripts/, …) into the numbered instance.
+# config.py auto-detects its own basepath via __file__, so no sed rewrite needed.
+cp -R "${REPO_DIR}/"* "${target_dir}"
 

@@ -1,23 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DEPLOY_BASE="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 instance=${1}
+INST_BREED="${DEPLOY_BASE}/GoBreeder_${instance}/breed"
+SAVE_DIR="${DEPLOY_BASE}/.redeploy_save_${instance}"
 
-echo clearing save cache
-rm -rf saved_histories
-mkdir saved_histories
-rm -rf saved_config
-mkdir saved_config
-rm -rf saved_current
-mkdir saved_current
+echo "Clearing save cache at ${SAVE_DIR}"
+rm -rf "${SAVE_DIR}"
+mkdir -p "${SAVE_DIR}/histories" "${SAVE_DIR}/config" "${SAVE_DIR}/current"
 
-echo saving current instance state
-mv GoBreeder_${instance}/breed/histories/* saved__histories/
-mv GoBreeder_${instance}/breed/config.py saved_config/
-mv GoBreeder_${instance}/breed/current_* saved_current/
+echo "Saving current instance state"
+mv "${INST_BREED}/histories/"* "${SAVE_DIR}/histories/" 2>/dev/null || true
+mv "${INST_BREED}/config.py"       "${SAVE_DIR}/config/"
+mv "${INST_BREED}/current_"*       "${SAVE_DIR}/current/" 2>/dev/null || true
 
-echo redeploying
-./deploy_breeder_instance.sh ${instance}
+echo "Redeploying instance ${instance}"
+"${SCRIPT_DIR}/deploy_breeder_instance.sh" "${instance}"
 
-echo restoring saved instance state
-mv saved_histories/* GoBreeder_${instance}/breed/histories/
-mv saved_config/config.py GoBreeder_${instance}/breed/config.py
-mv saved_current/current_* GoBreeder_${instance}/breed/
-echo Done.
+echo "Restoring saved instance state"
+mv "${SAVE_DIR}/histories/"*  "${INST_BREED}/histories/" 2>/dev/null || true
+mv "${SAVE_DIR}/config/config.py" "${INST_BREED}/config.py"
+mv "${SAVE_DIR}/current/current_"* "${INST_BREED}/" 2>/dev/null || true
+
+rm -rf "${SAVE_DIR}"
+echo "Done."

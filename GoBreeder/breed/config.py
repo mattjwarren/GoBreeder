@@ -32,9 +32,9 @@ def _join_path(base, *parts):
 
 
 # basepath: absolute path to this breed/ directory on the WSL2 Linux filesystem.
-# Deploy scripts (scripts/deploy_breeder_instance.sh) rewrite this per-instance.
-basepath = "/home/matth/breeders/GoBreeder_1/breed/"
-basepath = _ensure_trailing_sep(basepath)
+# Auto-detected from __file__ so the default is always correct after a plain
+# 'git clone' without needing deploy-script sed rewrites.
+basepath = _ensure_trailing_sep(os.path.dirname(os.path.abspath(__file__)))
 
 # Windows binaries (gogui-twogtp.exe etc.) – called via WSL2 Windows interop.
 windows_basepath = _ensure_trailing_sep(_join_path(basepath, "windows"))
