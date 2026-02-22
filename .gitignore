@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Type-checking
+.mypy_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# Logs
+logs/
+*.log
+runlog.txt
+
+# GoBreeder runtime generated file (histories are instance-specific, not committed)
+GoBreeder/breed/histories/
+
+# Editor
+.vscode/
+*.swp
+*.orig
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Old Windows gogui binaries (breed/windows/) – replaced by bundled Linux gogui
+GoBreeder/breed/windows/
+
+# gogui distribution – exclude IDE and build output folders
+GoBreeder/gogui-v1.6.0-bin/gogui/.idea/
+GoBreeder/gogui-v1.6.0-bin/gogui/out/

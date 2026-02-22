@@ -1,0 +1,235 @@
+<chapter id="rules">
+<title>Rules</title>
+
+<para>
+By default, GoGui deals with GTP engines that play the game of Go, but it can
+support other games if the GTP engine implements additional extensions to the
+protocol. These extensions lets the GTP engine determine the board
+configuration after a move is played, the list of legal moves, and the game
+result when the game is over. This way, it is possible to use GoGui to play
+games such as renju, gomoku, or Othello.
+</para>
+
+<para>
+The ruler program must indicate the command it supports with
+<userinput>list_commands</userinput>.
+</para>
+
+<section>
+<title>Menubar</title>
+<variablelist>
+
+<varlistentry>
+<term><guisubmenu>Attach</guisubmenu></term>
+<listitem>
+<para>
+Start a program from the list of ruler programs and synchronize it to the
+current game at the current position.
+If a ruler was already attached, it will be terminated, before the new
+ruler is started.
+If the ruler is for a game different from its predecessor, the position is cleared
+from the ruler's initial position (called by
+<userinput>gogui-rules_board</userinput>).
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><guisubmenu>Detach</guisubmenu></term>
+<listitem>
+<para>
+Terminate the currently attached ruler program.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><guisubmenu>New Program</guisubmenu></term>
+<listitem>
+<para>
+Add a new ruler program.
+The name field should contain a label for the
+<guisubmenu>Attach</guisubmenu> menu.
+The command field should contain the command to run the ruler program.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><guisubmenu>Edit Programs</guisubmenu></term>
+<listitem>
+<para>
+Edit the list of available ruler programs.
+</para>
+</listitem>
+</varlistentry>
+
+
+</variablelist>
+</section>
+
+<section>
+<title>Requirements</title>
+<para>
+A ruler program must support the followin commands:
+</para>
+
+<variablelist>
+
+<varlistentry>
+<term><command>gogui-rules_game_id</command></term>
+<listitem>
+<simpara>
+The response of the command is a string that specifies the game that is managed
+by the GTP program. It must begin with an uppercase letter and then contain
+only lowercase characters.
+Example :<programlisting>
+gogui-rules_game_id
+= Othello
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_board</command></term>
+<listitem>
+<simpara>
+The response of the command is a board of string containing '.' for an empty
+intersection of the Goban, 'X' for a black stone or 'O' for a white stone and '?' for a removed intersection (For Yavalath for example).
+Other characters are ignored.
+This command will be used to display the board in GoGui.
+Example :<programlisting>
+gogui-rules_board
+= ? ? . . . . . . .
+  ? . X . O . X . .
+  . X . . . . . . .
+  . . O . . . . O .
+  . . . . . . . O .
+  . O . X . . O X .
+  . . O X . . . X .
+  . X O . . X O X ?
+  . . . . . O . ? ?
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_board_gfx</command></term>
+<listitem>
+<simpara>
+        The response of the command is a gfx analyze command string. It can be
+        used to display game-specific graphics on the board. For instance, a
+        chess program can use this command to display square colors and piece
+        labels.
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_captured_count</command></term>
+<listitem>
+<simpara>
+Number of stones captured for each player. The output of this command is two integers, separated by a space. The first number is the number of stones captured by Black, and the second number is the number of stones captured by White.
+Example :<programlisting>
+gogui-rules_captured_count
+= 0 1
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_board_size</command></term>
+<listitem>
+<simpara>
+The response of the command is a string containing an integer that specifies
+the board size of the game and eventually the geometry of the board (rect or hex). The board in GoGui will always be non-resizable
+when a ruler program is attached.
+Example :<programlisting>
+gogui-rules_board_size
+= 15 hex
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_legal_moves</command></term>
+<listitem>
+<simpara>
+Possible move list command for the current side to move.
+The command is used to determine the moves that the player will be able to play
+(otherwise, an illegal move message will be sent).
+The command result must necessarily be a string of the following syntax :
+"A1 B9 C5 C6 pass".
+The character 'I' must not be used. The 8th letter is 'H' and the 9th letter is
+'J' like in the Go standards. Numbers start with 1 instead of 0.
+Pass must appear in response to this command if the player is allowed
+to pass.
+If no move is possible, the game ends.
+Example :<programlisting>
+gogui-rules_legal_moves
+= A1 A2 A3 A5 A6 A7 A9 B1 B2 B4 B5 B6
+  B8 C1 C2 C6 C7 C8 D2 D4 D5 D7 D8 E1
+  E2 E4 E6 E7 F6 F8 F9 G2 G3 G5 G6 G7
+  G8 H1 H5 H6 H9 J1 J3 J4 J5 J7 J8 pass
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_side_to_move</command></term>
+<listitem>
+<simpara>
+The command must return a string beginning with <userinput>'b'</userinput>,
+<userinput>'w'</userinput>, <userinput>'B'</userinput> or <userinput>'W'
+</userinput>.
+Example :<programlisting>
+gogui-rules_side_to_move
+= white
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><command>gogui-rules_final_result</command></term>
+<listitem>
+<simpara>
+The result of this command is a string that will be shown in a dialog box when
+the game is over. This is the only way to notice about the game result when a
+ruler program is attached since the <guimenuitem>Score</guimenuitem> menu is
+disabled.
+Example :<programlisting>
+gogui-rules_final_result
+= White wins by 4 points. Final score
+  is B 30 and W 34.
+</programlisting>
+</simpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+</varlistentry>
+
+</variablelist>
+</section>
+
+<section><title>End</title>
+<para>
+The game ends if the response to the command <userinput>gogui-rules_legal_moves
+</userinput> is an empty string.
+</para>
+<para>
+Then, GoGui queries the score to the ruler program with
+<userinput>gogui-rules_final_result</userinput> and shows the result string
+in a dialog box.
+</para>
+<para><!-- Empty paragraph to enforce space in JEditorPane --></para>
+
+</section>
+
+</chapter>

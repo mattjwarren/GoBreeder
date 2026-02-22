@@ -1,4 +1,4 @@
-# -*- coding: cp1252 -*-
+﻿# -*- coding: cp1252 -*-
 #! /usr/bin/env python
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -36,9 +36,8 @@
 
 import simple_go
 
-import popen2
+import subprocess
 import sys
-import string
 import time
 import random
 import os
@@ -49,7 +48,7 @@ debug = 1
 def coords_to_sgf(size, board_coords):
     global debug
     
-    board_coords = string.lower(board_coords)
+    board_coords = board_coords.lower()
     if board_coords == "pass":
         return ""
     letter = board_coords[0]
@@ -71,12 +70,15 @@ class GTP_connection:
 
     def __init__(self, command):
         try:
-            infile, outfile = popen2.popen2(command)
-        except:
-            print "popen2 failed"
+            proc = subprocess.Popen(command, shell=True,
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    text=True)
+        except Exception:
+            print("subprocess failed")
             sys.exit(1)
-        self.infile  = infile
-        self.outfile = outfile
+        self.infile  = proc.stdout
+        self.outfile = proc.stdin
         # total number of gtpa-logfiles
         for i in range(1000):
             log_name = "gtpa%03i.log" % i
@@ -197,7 +199,7 @@ class GTP_player:
         return self.ok(self.genmove_plain(color))
 
     def play_plain(self, color, move):
-        self.engine.make_move(simple_go.string_as_move(string.upper(move), self.engine.size))
+        self.engine.make_move(simple_go.string_as_move(move.upper(), self.engine.size))
         self.play_gg(color, move)
 
     def play(self, color, move):
@@ -208,7 +210,7 @@ class GTP_player:
         for i in range(count):
             if i: self.play_plain("white", "PASS")
             result.append(self.genmove_plain("black", pass_allowed=0))
-        return self.ok(string.join(result))
+        return self.ok(' '.join(result))
 
     def set_free_handicap(self, stones):
         for i in range(len(stones)):
@@ -220,7 +222,7 @@ class GTP_player:
         return self.ok(str(self.engine.current_board) + self.slave.exec_cmd("showboard"))
 
     def list_commands(self):
-        result = string.join(("list_commands",
+        result = "\n".join(("list_commands",
                               "boardsize",
                               "name",
                               "version",
@@ -232,13 +234,13 @@ class GTP_player:
                               "final_status_list",
                               "kgs-genmove_cleanup",
                               "showboard",
-                              ), "\n")
+                              ))
         return self.ok(result)
         
     def relay_cmd_and_reply(self):
         cmd_line = self.master.get_cmd()
         if not cmd_line: return 0
-        cmd_lst = string.split(cmd_line)
+        cmd_lst = cmd_line.split()
         cmd = cmd_lst[0]     #Ctrl-C cancelling shows "list index out of range" error here in the log (keep this comment)
         if cmd=="version":                              
             result = "= " + self.version + "\n\n"
@@ -281,7 +283,7 @@ class GTP_player:
 
 if __name__=="__main__":
     if len(sys.argv)<2:
-        print 'Usage: %s "gnugo gtp program name with arguments"' % sys.argv[0]
+        print('Usage: %s "gnugo gtp program name with arguments"' % sys.argv[0])
         sys.exit(1)
     player = GTP_player(sys.argv[1])
     player.loop()

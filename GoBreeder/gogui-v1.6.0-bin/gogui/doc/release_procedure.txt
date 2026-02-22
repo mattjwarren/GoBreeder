@@ -1,0 +1,18 @@
+=============================================================================
+Documentation
+=============================================================================
+set version number in /build.xml file.
+write release notes in doc/manual/xml/news.xml.
+if a new important feature is added, add it in doc/manual/xml.
+
+=============================================================================
+Prepare zip for distribution
+=============================================================================
+run ./binary_distrib.sh in the root of the repo.
+
+=============================================================================
+Tag release with git and publish in github
+=============================================================================
+git tag <version> (eg git tag v1.5.3)
+git push github <version>
++ "draft a new release" on github (add .zip)
