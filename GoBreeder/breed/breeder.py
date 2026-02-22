@@ -151,6 +151,22 @@ class Breeder:
             if result_str != "?":
                 break
         if result_str == "?":
+            # Secondary pass: the referee (or twogtp) sometimes emits
+            # "... White has won" / "... Black has won" as a GTP error
+            # body when a player program dies mid-game (e.g.
+            # "R<< ? Black move failed - White has won").
+            # Synthesise a resign result from that phrase so downstream
+            # logic can determine the winner without a score.
+            for ln in serr_lines:
+                ln_lower = ln.lower()
+                if "white has won" in ln_lower:
+                    result_str = "W+R"
+                    break
+                if "black has won" in ln_lower:
+                    result_str = "B+R"
+                    break
+
+        if result_str == "?":
             # Log nearby context to help diagnose parsing failures.
             context = [
                 f"  [{j}] {serr_lines[j]}"
@@ -167,13 +183,6 @@ class Breeder:
         won = False
         if result_str != "?":
             won = result_str.upper().startswith(player[0].upper())
-        else:
-            # Fallback: scan for old-style "has won" line.
-            for ln in all_lines:
-                if "has won" in ln:
-                    tokens = ln.split()
-                    if len(tokens) >= 3 and tokens[-3].lower() == player.lower():
-                        won = True
 
         # Extract the final board state rendered by the child process in its quit handler.
         # Child calls go_eng.render_board() unconditionally on receiving 'quit'; each row
