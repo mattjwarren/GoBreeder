@@ -5,6 +5,7 @@ Created on 14 Sep 2013
 """
 
 import os
+import shutil
 
 
 def _choose_sep(path):
@@ -38,6 +39,14 @@ basepath = _ensure_trailing_sep(os.path.dirname(os.path.abspath(__file__)))
 
 # Java artefacts (gosumi JARs) – invoked via Linux 'java' by gogui-twogtp (Linux).
 java_basepath = _ensure_trailing_sep(_join_path(basepath, "java"))
+
+# Absolute path to java binary. Must be absolute so gogui-twogtp.jar (which
+# spawns subprocesses via Java ProcessBuilder and resolves relative paths from
+# its cwd=breed/) does not accidentally try to execute the breed/java/ directory.
+_java_bin = shutil.which("java") or "java"
+if _java_bin == "java":
+    import warnings
+    warnings.warn("'java' not found on PATH; gosumi commands may fail", RuntimeWarning)
 
 
 def set_basepath(new_basepath):
@@ -76,8 +85,11 @@ def set_basepath(new_basepath):
     gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
     # gosumi JARs are invoked by Linux gogui-twogtp as a Linux subprocess,
     # so plain Linux paths and Linux java are correct here.
-    gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-    gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+    # Use absolute java path so gogui-twogtp.jar's ProcessBuilder doesn't
+    # resolve 'java' relative to cwd and hit the breed/java/ directory.
+    _java_bin = shutil.which("java") or "java"
+    gosumi = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_dks.jar"'
+    gosumi_2013 = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
     player_program = gobreeder
     # and for the enemy program
     enemy_program = gosumi_2013
@@ -117,8 +129,10 @@ pythonpath = "uv run python3"
 gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
 # gosumi JARs are invoked by Linux gogui-twogtp as a Linux subprocess,
 # so plain Linux paths and Linux java are correct here.
-gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+# Use absolute java path so gogui-twogtp.jar's ProcessBuilder doesn't
+# resolve 'java' relative to cwd and hit the breed/java/ directory.
+gosumi = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_dks.jar"'
+gosumi_2013 = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
 player_program = gobreeder
 # and for the enemy program
 enemy_program = gosumi_2013
