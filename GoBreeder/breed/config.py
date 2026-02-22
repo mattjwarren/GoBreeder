@@ -5,6 +5,30 @@ Created on 14 Sep 2013
 """
 
 import os
+import subprocess
+
+
+def _to_windows_path(linux_path: str) -> str:
+    """Convert a WSL2 Linux path to a Windows UNC path using wslpath.
+
+    gogui-twogtp.exe is a Windows binary.  When it spawns subprocesses (e.g.
+    'java -jar <path>') those run as Windows processes and cannot resolve Linux
+    filesystem paths.  wslpath -w converts '/home/user/...' to the equivalent
+    '\\\\wsl.localhost\\Ubuntu\\home\\user\\...' UNC path that Windows can use.
+
+    Falls back to the original path if wslpath is unavailable (e.g. in
+    non-WSL2 environments or unit-test contexts).
+    """
+    try:
+        result = subprocess.run(
+            ["wslpath", "-w", linux_path.rstrip("/\\")],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return linux_path.rstrip("/\\")
 
 
 def _choose_sep(path):
@@ -82,8 +106,11 @@ def set_basepath(new_basepath):
     gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
     # gosumi JARs are launched by gogui-twogtp.exe which is a Windows process.
     # Java must be installed on Windows and on the Windows PATH.
-    gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-    gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+    # java_basepath is a Linux path; convert to Windows UNC path so Windows Java
+    # can actually locate the JAR files on the WSL2 filesystem.
+    java_basepath_win = _to_windows_path(java_basepath) + "\\"
+    gosumi = '"java -jar ' + java_basepath_win + 'gosumi_dks.jar"'
+    gosumi_2013 = '"java -jar ' + java_basepath_win + 'gosumi_2013.jar -timeout 1"'
     player_program = gobreeder
     # and for the enemy program
     enemy_program = gosumi_2013
@@ -120,8 +147,11 @@ pythonpath = "uv run python3"
 gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
 # gosumi JARs are launched by gogui-twogtp.exe which is a Windows process.
 # Java must be installed on Windows and on the Windows PATH.
-gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+# java_basepath is a Linux path; convert to Windows UNC path so Windows Java
+# can actually locate the JAR files on the WSL2 filesystem.
+java_basepath_win = _to_windows_path(java_basepath) + "\\"
+gosumi = '"java -jar ' + java_basepath_win + 'gosumi_dks.jar"'
+gosumi_2013 = '"java -jar ' + java_basepath_win + 'gosumi_2013.jar -timeout 1"'
 player_program = gobreeder
 # and for the enemy program
 enemy_program = gosumi_2013
