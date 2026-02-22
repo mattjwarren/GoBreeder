@@ -188,7 +188,10 @@ class SteppableGoVM(vm.GoVM):
         The body of each iteration matches execute_program() exactly so results
         are identical to running the program in one shot.
         """
-        while (self.reg_clock < max_clocks) and (self.reg_pc < len(self.program)):
+        compiled = self._compiled_program
+        prog_len = len(compiled)
+
+        while (self.reg_clock < max_clocks) and (self.reg_pc < prog_len):
             if self.reg_pc < 0:
                 logger.debug("REG_PC less than ZERO: %d", self.reg_pc)
                 self.reg_pc = getattr(self, "old_pc", 0)
@@ -196,18 +199,19 @@ class SteppableGoVM(vm.GoVM):
 
             op = self.program[self.reg_pc]
             opcode = op[0]
-            opdata = op[1]
-            canonical = self.canonicalise(opcode, opdata)
             current_instr: tuple[str, list[Any]] = (opcode, list(op[1]) if op[1] else [])
+
+            fn, tagged_ops = compiled[self.reg_pc]
+            canonical = self._resolve_operands(tagged_ops)
 
             logger.debug(">CLOCK %d PC %d opcode=%s", self.reg_clock, self.reg_pc, opcode)
 
-            self.opcodes[opcode](self, canonical)
+            fn(self, canonical)
 
             self.old_pc = self.reg_pc
             if self.PC_INTERRUPT and self.PC_INTERRUPT_A is not None:
                 self.old_pc = self.reg_pc
-                self.reg_pc = self.PC_INTERRUPT_A % len(self.program)
+                self.reg_pc = self.PC_INTERRUPT_A % prog_len
                 self.PC_INTERRUPT = False
                 self.PC_INTERRUPT_A = None
             else:

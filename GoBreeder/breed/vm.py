@@ -21,6 +21,21 @@ def log(message: str) -> None:
     logger.debug(message)
 
 
+# ---------------------------------------------------------------------------
+# Operand-kind constants used by the genome pre-compiler.
+# Pre-compiling each instruction's operands once in boot() eliminates all
+# string-parsing from the hot execution loop.
+# ---------------------------------------------------------------------------
+_OP_CONST = 0         # literal integer constant
+_OP_REG = 1           # read register: getattr(self, attr_name)
+_OP_MEM_CONST = 2     # read self.memory[const_addr]
+_OP_MEM_REG = 3       # read self.memory[getattr(self, attr) % max]
+_OP_DEREF_CONST = 4   # read self.memory[self.memory[const_addr] % max]
+_OP_DEREF_REG = 5     # read self.memory[self.memory[getattr(self, attr) % max] % max]
+_OP_MOV_REG = 6       # mov destination: plain register name kept as string
+_OP_STN = 7           # STN_bp_op board-pointer operation: val = (bp_str, op_str)
+
+
 class GoVM:
     working_X_registers = ["X" + str(N) for N in range(0, 8)]  # change in gogenmoe to
     working_Y_registers = ["Y" + str(N) for N in range(0, 8)]
@@ -169,6 +184,107 @@ class GoVM:
         self.board = board
         self.program = program
         self.initialise_memories()
+        # Pre-compile instruction operands once so the hot loop avoids string
+        # parsing on every clock tick.
+        self._compiled_program = self._compile_program(program)
+
+    # ------------------------------------------------------------------
+    # Genome pre-compiler – called once per boot(), not per clock tick.
+    # ------------------------------------------------------------------
+
+    def _parse_single_operand(self, opdatum: str | None, idx: int, opcode: str) -> tuple | None:
+        """Parse one raw operand string into a tagged (kind, value) tuple.
+
+        Returns None for None operands so callers can skip them cleanly.
+        The *kind* is one of the _OP_* module constants; *value* is the
+        pre-resolved static part (constant int, or register attribute name).
+        """
+        if opdatum is None:
+            return None
+
+        first = opdatum[0]  # faster than str(opdatum)[0] – already a str
+
+        if first in "0123456789-":
+            val = int(opdatum)
+            # A plain number as mov's second operand is a memory destination
+            # address.  Canonicalise returns it as an int; opcode_mov stores
+            # into memory[B], so no special tag is needed – just _OP_CONST.
+            return (_OP_CONST, val)
+
+        if first in "m*":
+            mem_loc_str = opdatum[1:]
+            if mem_loc_str[0] in "0123456789-":
+                # Pre-apply the modulo so the hot loop skips it at runtime.
+                addr = int(mem_loc_str) % self.max_memoryons
+                if first == "m":
+                    return (_OP_MEM_CONST, addr)
+                return (_OP_DEREF_CONST, addr)
+            else:
+                reg_attr = "reg_" + mem_loc_str
+                if first == "m":
+                    return (_OP_MEM_REG, reg_attr)
+                return (_OP_DEREF_REG, reg_attr)
+
+        # Register name
+        if idx == 1 and opcode == "mov":
+            # Destination register: keep the plain name for setattr in opcode_mov.
+            return (_OP_MOV_REG, opdatum)
+        if opdatum[:3] == "STN":
+            tokens = opdatum.split("_")
+            return (_OP_STN, (tokens[1], tokens[2]))
+        return (_OP_REG, "reg_" + opdatum)
+
+    def _compile_program(self, program: list) -> list:
+        """Pre-parse every instruction into (opcode_fn, [tagged_ops]) tuples.
+
+        This is called once per boot().  The result replaces per-tick string
+        parsing in the execution loop.
+        """
+        opcodes_map = GoVM.opcodes
+        compiled: list = []
+        for opcode, opdata in program:
+            fn = opcodes_map[opcode]
+            tagged_ops: list = []
+            for idx, opdatum in enumerate(opdata):
+                parsed = self._parse_single_operand(opdatum, idx, opcode)
+                if parsed is not None:
+                    tagged_ops.append(parsed)
+            compiled.append((fn, tagged_ops))
+        return compiled
+
+    def _resolve_operands(self, tagged_ops: list) -> list:
+        """Resolve pre-compiled operand tags to runtime values.
+
+        This replaces canonicalise() in the hot execution loop.  It uses
+        integer tag comparisons instead of string parsing, which is
+        measurably faster in CPython when called thousands of times per move.
+        """
+        if not tagged_ops:
+            return []
+        memory = self.memory
+        max_mem = self.max_memoryons
+        result: list = []
+        for tag, val in tagged_ops:
+            if tag == _OP_CONST:
+                result.append(val)
+            elif tag == _OP_REG:
+                result.append(getattr(self, val))
+            elif tag == _OP_MEM_CONST:
+                result.append(memory[val])
+            elif tag == _OP_MEM_REG:
+                result.append(memory[getattr(self, val) % max_mem])
+            elif tag == _OP_DEREF_CONST:
+                result.append(memory[memory[val] % max_mem])
+            elif tag == _OP_DEREF_REG:
+                loc = getattr(self, val) % max_mem
+                result.append(memory[memory[loc] % max_mem])
+            elif tag == _OP_MOV_REG:
+                result.append(val)       # register name string – used by opcode_mov
+            else:                        # _OP_STN
+                bp, op = val
+                stn_val = self.process_STN_op(bp=bp, op=op)
+                result.append(0 if stn_val is None else stn_val)
+        return result
 
     def canonicalise(self, opcode, opdata):
         # Ok lets look at whats going on here.
@@ -682,9 +798,7 @@ class GoVM:
         # return 0 if stack empty
         if len(self.stack_memory) == 0:
             return None
-        A = self.stack_memory[-1]
-        self.stack_memory = self.stack_memory[:-1]
-        return A
+        return self.stack_memory.pop()  # O(1) in-place pop, not list copy
 
     def pop_pc(self):
         return self.pop()
@@ -697,109 +811,94 @@ class GoVM:
             running_genome.close()
         except OSError:
             pass  # non-fatal: running-genome debug file may not be writable in test env
+
+        # Cache debug flag outside the loop so each tick avoids re-checking.
+        _debug = logger.isEnabledFor(logging.DEBUG)
+
+        compiled = self._compiled_program
+        prog_len = len(compiled)
+
         # NEED TO IMPLEMENT pc LOOP DETECTION /ora t least stuck-pc etc../
-        while (self.reg_clock < max_clocks) and (self.reg_pc < len(self.program)):
+        while (self.reg_clock < max_clocks) and (self.reg_pc < prog_len):
             if self.reg_pc < 0:
                 print("DEBUG: REG_PC less than ZERO!! =", self.reg_pc)
                 print("STAACK", self.stack_memory[-1:])
-                global logging
-                logging = True
+                # Note: original code set `global logging = True` here to
+                # enable tracing, but that shadowed the logging module.  The
+                # negative-PC path is a guard for a state that should never
+                # occur; the print above is sufficient notification.
                 self.reg_pc = self.old_pc
                 self.reg_HALT = True
 
             pc_history.append(self.reg_pc)
-            op = self.program[self.reg_pc]  # op = (opcode,[opdata1|None,opdata2|None])
 
-            opcode = op[0]
-            opdata = op[1]
-            log(">CLOCK %d PC %d" % (self.reg_clock, self.reg_pc))
-            log("\tBase op:" + opcode + str(opdata))
-            opdata = self.canonicalise(opcode, opdata)
-            log("\tCanonical: " + opcode + str(opdata))
+            fn, tagged_ops = compiled[self.reg_pc]
+
+            if _debug:
+                op = self.program[self.reg_pc]
+                opcode = op[0]
+                opdata_raw = op[1]
+                logger.debug(">CLOCK %d PC %d", self.reg_clock, self.reg_pc)
+                logger.debug("\tBase op: %s%s", opcode, opdata_raw)
+
+            opdata = self._resolve_operands(tagged_ops)
+
+            if _debug:
+                logger.debug("\tCanonical: %s%s", opcode, opdata)
 
             # exec
-            self.opcodes[opcode](self, opdata)
+            fn(self, opdata)
 
-            log(
-                "\top: "
-                + opcode
-                + str(opdata)
-                + ", pc %d, clk %d, RES %d, CRY %d, SGN %d, LOG %d, X:Y %d:%d"
-                % (
-                    self.reg_pc,
-                    self.reg_clock,
-                    self.reg_RES,
-                    self.reg_CRY,
-                    self.reg_SGN,
-                    self.reg_LOG,
-                    self.reg_X,
-                    self.reg_Y,
+            if _debug:
+                logger.debug(
+                    "\top: %s%s, pc %d, clk %d, RES %d, CRY %d, SGN %d, LOG %d, X:Y %d:%d",
+                    opcode, opdata,
+                    self.reg_pc, self.reg_clock,
+                    self.reg_RES, self.reg_CRY, self.reg_SGN, self.reg_LOG,
+                    self.reg_X, self.reg_Y,
                 )
-            )
-            log(
-                "\tGP: %d %d %d %d %d %d %d %d"
-                % (
-                    self.reg_GP0,
-                    self.reg_GP1,
-                    self.reg_GP2,
-                    self.reg_GP3,
-                    self.reg_GP4,
-                    self.reg_GP5,
-                    self.reg_GP6,
-                    self.reg_GP7,
+                logger.debug(
+                    "\tGP: %d %d %d %d %d %d %d %d",
+                    self.reg_GP0, self.reg_GP1, self.reg_GP2, self.reg_GP3,
+                    self.reg_GP4, self.reg_GP5, self.reg_GP6, self.reg_GP7,
                 )
-            )
-            log(
-                "\tGX: %d %d %d %d %d %d %d %d"
-                % (
-                    self.reg_X0,
-                    self.reg_X1,
-                    self.reg_X2,
-                    self.reg_X3,
-                    self.reg_X4,
-                    self.reg_X5,
-                    self.reg_X6,
-                    self.reg_X7,
+                logger.debug(
+                    "\tGX: %d %d %d %d %d %d %d %d",
+                    self.reg_X0, self.reg_X1, self.reg_X2, self.reg_X3,
+                    self.reg_X4, self.reg_X5, self.reg_X6, self.reg_X7,
                 )
-            )
-            log(
-                "\tGY: %d %d %d %d %d %d %d %d"
-                % (
-                    self.reg_Y0,
-                    self.reg_Y1,
-                    self.reg_Y2,
-                    self.reg_Y3,
-                    self.reg_Y4,
-                    self.reg_Y5,
-                    self.reg_Y6,
-                    self.reg_Y7,
+                logger.debug(
+                    "\tGY: %d %d %d %d %d %d %d %d",
+                    self.reg_Y0, self.reg_Y1, self.reg_Y2, self.reg_Y3,
+                    self.reg_Y4, self.reg_Y5, self.reg_Y6, self.reg_Y7,
                 )
-            )
-            log("\tWXY %d PLAYER %d Stone %s" % (self.reg_WXY, self.reg_PLAYER, str(self.reg_STN)))
+                logger.debug("\tWXY %d PLAYER %d Stone %s", self.reg_WXY, self.reg_PLAYER, self.reg_STN)
+                logger.debug("\twhites%s", self.bi_whites)
+                logger.debug("\tblacks%s", self.bi_blacks)
+                logger.debug("\tspaces%s", self.bi_spaces._direction)
+                logger.debug("\twhiteF%s", self.bi_white_freedoms)
+                logger.debug("\tblackF%s", self.bi_black_freedoms)
+                logger.debug("\tallstns%s", self.bi_all_stones)
+                logger.debug("\tstack: ...%d%s", len(self.stack_memory), self.stack_memory[-10:])
+                logger.debug("\tMEM50: %s", self.memory[0:50])
 
-            log("\twhites" + str(self.bi_whites))
-            log("\tblacks" + str(self.bi_blacks))
-            log("\tspaces" + str(self.bi_spaces._direction))
-            log("\twhiteF" + str(self.bi_white_freedoms))
-            log("\tblackF" + str(self.bi_black_freedoms))
-            log("\tallstns" + str(self.bi_all_stones))
-
-            log("\tstack: ..." + str(len(self.stack_memory)) + str(self.stack_memory[-10:]))
-            log("\tMEM50: " + str(self.memory[0:50]))
             self.old_pc = self.reg_pc
             if self.PC_INTERRUPT:
                 self.old_pc = self.reg_pc
-                log("\tPC_INTERRUPT  ->  " + str(self.PC_INTERRUPT_A))
-                self.reg_pc = self.PC_INTERRUPT_A % len(self.program)
+                if _debug:
+                    logger.debug("\tPC_INTERRUPT  ->  %s", self.PC_INTERRUPT_A)
+                self.reg_pc = self.PC_INTERRUPT_A % prog_len
                 self.PC_INTERRUPT = False
                 self.PC_INTERRUPT_A = None
             else:
-                log("\tIncr reg_pc")
+                if _debug:
+                    logger.debug("\tIncr reg_pc")
                 self.reg_pc += 1
             if self.reg_HALT:
                 print("FORCED HALT BY reg_HALT")
                 sys.exit(0)
-            log("\tIncr reg_clock")
+            if _debug:
+                logger.debug("\tIncr reg_clock")
             self.reg_clock += 1
         return pc_history
 
