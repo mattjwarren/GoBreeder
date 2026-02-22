@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import stat
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -113,6 +114,17 @@ class DeploymentFactory:
                 shutil.copytree(gogui_src, gogui_dst)
                 logger.debug("Copied gogui (symlink unavailable): %s -> %s", gogui_src, gogui_dst)
 
+        # Ensure gogui/bin scripts and ref_v0.1_exe have execute permission.
+        # The execute bit is often lost on Windows NTFS / git checkouts.
+        gogui_bin = gogui_dst / "gogui" / "bin"
+        if gogui_bin.exists():
+            for entry in gogui_bin.iterdir():
+                if entry.is_file():
+                    _mark_executable(entry)
+        ref_exe = breed_dir / "ref_v0.1_exe"
+        if ref_exe.exists():
+            _mark_executable(ref_exe)
+
         # Generate config.py with correct basepath
         _write_config(breed_dir)
 
@@ -129,6 +141,16 @@ class DeploymentFactory:
         )
         logger.info("Created deployment %r at %s", name, deployment_dir)
         return model
+
+
+def _mark_executable(path: Path) -> None:
+    """Add owner/group/other execute bits to a file, ignoring errors on Windows."""
+    try:
+        current = path.stat().st_mode
+        path.chmod(current | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        logger.debug("chmod +x %s", path)
+    except OSError as exc:
+        logger.debug("Could not chmod +x %s: %s", path, exc)
 
 
 def _write_config(breed_dir: Path) -> None:
