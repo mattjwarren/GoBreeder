@@ -92,6 +92,12 @@ class DeploymentPanel(QWidget):
         self._detail_run_state = QLabel("—")
         self._btn_go_to_run = QPushButton("Go to Breeding Run")
         self._btn_go_to_run.setEnabled(False)
+        self._btn_refresh_code = QPushButton("Refresh Code")
+        self._btn_refresh_code.setEnabled(False)
+        self._btn_refresh_code.setToolTip(
+            "Re-copy source code files into this deployment.\n"
+            "Population data and config are not affected."
+        )
         self._btn_inject_population = QPushButton("Inject Population from Library…")
         self._btn_inject_population.setEnabled(False)
 
@@ -100,6 +106,7 @@ class DeploymentPanel(QWidget):
         detail_layout.addRow("Population:", self._detail_pop_status)
         detail_layout.addRow("Run State:", self._detail_run_state)
         detail_layout.addRow("", self._btn_go_to_run)
+        detail_layout.addRow("", self._btn_refresh_code)
         detail_layout.addRow("", self._btn_inject_population)
 
         main_layout.addWidget(left_widget, 1)
