@@ -8,30 +8,37 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
 
 # ---------------------------------------------------------------------------
-# Windows Java availability check
+# Dependency checks
 #
-# The enemy Go program (gosumi) is a JAR file launched by gogui-twogtp.exe.
-# gogui-twogtp.exe is a Windows binary (WSL2 interop) so when it spawns
-# 'java -jar …' it runs a Windows process — it needs Windows Java on the
-# Windows PATH, NOT the WSL2 Linux java.
+# Game execution is entirely Linux-native:
+#   gogui-twogtp  (Linux)  orchestrates the game
+#   java          (Linux)  runs the gosumi opponent JAR
+#   ref_v0.1_exe  (Linux)  acts as referee
 #
-# From WSL2 we can test Windows java via WSL2 interop: calling 'java.exe'
-# resolves to the Windows java binary through the interop PATH bridge.
-# If it is missing, every single game move causes Windows to open a browser
-# window prompting the user to install Java.
+# No Windows Java or WSL2 interop is needed for game execution.
+# The Windows .exe files in breed/windows/ are kept but unused.
 # ---------------------------------------------------------------------------
-if ! java.exe -version &>/dev/null; then
-    echo "ERROR: Windows 'java.exe' not found or not accessible from WSL2." >&2
-    echo "" >&2
-    echo "gogui-twogtp.exe is a Windows process and needs Windows Java on the" >&2
-    echo "Windows PATH.  Please install a Windows JRE/JDK, e.g.:" >&2
-    echo "  https://adoptium.net/  (Temurin JRE is sufficient)" >&2
-    echo "" >&2
-    echo "After installing, ensure 'java' is on your Windows PATH and restart" >&2
-    echo "your WSL2 session so the interop PATH is refreshed." >&2
+
+# 1. Linux Java – needed to run the gosumi JARs.
+if ! command -v java &>/dev/null; then
+    echo "ERROR: 'java' not found in this WSL2 environment." >&2
+    echo "Please install a JRE/JDK, e.g.:" >&2
+    echo "  sudo apt-get install -y default-jre" >&2
     exit 1
 fi
-echo "Windows Java found: $(java.exe -version 2>&1 | head -1)"
+echo "Linux Java found: $(java -version 2>&1 | head -1)"
+
+# 2. gogui-twogtp – Linux command that orchestrates two-player GTP games.
+#    Install via: sudo apt-get install -y gogui
+if ! command -v gogui-twogtp &>/dev/null; then
+    echo "'gogui-twogtp' not found. Attempting to install via apt..." >&2
+    if ! sudo apt-get install -y gogui; then
+        echo "ERROR: Could not install gogui. Please install it manually:" >&2
+        echo "  sudo apt-get install -y gogui" >&2
+        exit 1
+    fi
+fi
+echo "gogui-twogtp found: $(command -v gogui-twogtp)"
 
 instance=${1}
 

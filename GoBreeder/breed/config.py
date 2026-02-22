@@ -5,30 +5,6 @@ Created on 14 Sep 2013
 """
 
 import os
-import subprocess
-
-
-def _to_windows_path(linux_path: str) -> str:
-    """Convert a WSL2 Linux path to a Windows UNC path using wslpath.
-
-    gogui-twogtp.exe is a Windows binary.  When it spawns subprocesses (e.g.
-    'java -jar <path>') those run as Windows processes and cannot resolve Linux
-    filesystem paths.  wslpath -w converts '/home/user/...' to the equivalent
-    '\\\\wsl.localhost\\Ubuntu\\home\\user\\...' UNC path that Windows can use.
-
-    Falls back to the original path if wslpath is unavailable (e.g. in
-    non-WSL2 environments or unit-test contexts).
-    """
-    try:
-        result = subprocess.run(
-            ["wslpath", "-w", linux_path.rstrip("/\\")],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return linux_path.rstrip("/\\")
 
 
 def _choose_sep(path):
@@ -60,11 +36,10 @@ def _join_path(base, *parts):
 # 'git clone' without needing deploy-script sed rewrites.
 basepath = _ensure_trailing_sep(os.path.dirname(os.path.abspath(__file__)))
 
-# Windows binaries (gogui-twogtp.exe etc.) – called via WSL2 Windows interop.
+# Windows binaries kept for reference but no longer used for game execution.
 windows_basepath = _ensure_trailing_sep(_join_path(basepath, "windows"))
 
-# Java artefacts (gosumi JARs) – invoked as a Windows process by gogui-twogtp.exe
-# (itself a Windows binary).  Requires Windows Java on the Windows PATH.
+# Java artefacts (gosumi JARs) – invoked via Linux 'java' by gogui-twogtp (Linux).
 java_basepath = _ensure_trailing_sep(_join_path(basepath, "java"))
 
 
@@ -104,21 +79,19 @@ def set_basepath(new_basepath):
     # breeder parms
     # string to invoke the player program (note double quoting)
     gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
-    # gosumi JARs are launched by gogui-twogtp.exe which is a Windows process.
-    # Java must be installed on Windows and on the Windows PATH.
-    # java_basepath is a Linux path; convert to Windows UNC path so Windows Java
-    # can actually locate the JAR files on the WSL2 filesystem.
-    java_basepath_win = _to_windows_path(java_basepath) + "\\"
-    gosumi = '"java -jar ' + java_basepath_win + 'gosumi_dks.jar"'
-    gosumi_2013 = '"java -jar ' + java_basepath_win + 'gosumi_2013.jar -timeout 1"'
+    # gosumi JARs are invoked by Linux gogui-twogtp as a Linux subprocess,
+    # so plain Linux paths and Linux java are correct here.
+    gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
+    gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
     player_program = gobreeder
     # and for the enemy program
     enemy_program = gosumi_2013
 
     # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
     referee_program_command = _join_path(basepath, "ref_v0.1_exe")
-    # gogui-twogtp.exe is a Windows binary in breed/windows/ (WSL2 interop calls it)
-    two_gtp_command = _join_path(windows_basepath, "gogui-twogtp.exe")
+    # Use the Linux gogui-twogtp command (installed via apt install gogui).
+    # Avoids WSL2 Windows interop entirely – no Windows Java dependency.
+    two_gtp_command = "gogui-twogtp"
 
     # file to hold 'previous' generation - just-tested pop is copied to here
     previous_population_file = _join_path(basepath, "current_population.py_save")
@@ -145,20 +118,18 @@ vm_running_genome_file = _join_path(basepath, "vm_running_genome.py")
 # Use uv to run python so the project venv is always active.
 pythonpath = "uv run python3"
 gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
-# gosumi JARs are launched by gogui-twogtp.exe which is a Windows process.
-# Java must be installed on Windows and on the Windows PATH.
-# java_basepath is a Linux path; convert to Windows UNC path so Windows Java
-# can actually locate the JAR files on the WSL2 filesystem.
-java_basepath_win = _to_windows_path(java_basepath) + "\\"
-gosumi = '"java -jar ' + java_basepath_win + 'gosumi_dks.jar"'
-gosumi_2013 = '"java -jar ' + java_basepath_win + 'gosumi_2013.jar -timeout 1"'
+# gosumi JARs are invoked by Linux gogui-twogtp as a Linux subprocess,
+# so plain Linux paths and Linux java are correct here.
+gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
+gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
 player_program = gobreeder
 # and for the enemy program
 enemy_program = gosumi_2013
 # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
 referee_program_command = _join_path(basepath, "ref_v0.1_exe")
-# gogui-twogtp.exe is a Windows binary in breed/windows/ (WSL2 interop calls it)
-two_gtp_command = _join_path(windows_basepath, "gogui-twogtp.exe")
+# Use the Linux gogui-twogtp command (installed via apt install gogui).
+# Avoids WSL2 Windows interop entirely – no Windows Java dependency.
+two_gtp_command = "gogui-twogtp"
 
 # board size...
 board_size = 9  # oh yeah, about this. MUST BE 9 until the near future...
