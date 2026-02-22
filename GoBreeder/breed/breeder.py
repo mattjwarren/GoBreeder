@@ -112,14 +112,6 @@ class Breeder:
         returncode = game_process.returncode
 
         self._logger.debug("BREEDER: subprocess returncode: %d", returncode)
-        if sout.strip():
-            self._logger.debug("BREEDER: subprocess stdout:\n%s", sout)
-        else:
-            self._logger.debug("BREEDER: subprocess stdout: (empty)")
-        if serr.strip():
-            self._logger.debug("BREEDER: subprocess stderr:\n%s", serr)
-        else:
-            self._logger.debug("BREEDER: subprocess stderr: (empty)")
 
         # Count genmove calls (each pair = one full move from each side).
         all_lines = sout.split("\n") + serr.split("\n")
