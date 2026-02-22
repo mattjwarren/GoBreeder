@@ -43,8 +43,6 @@ class Mediator:
             self.log(f"genome  {genome}")
 
             self.govm = govm
-            vm.logging = False
-
             self.go_eng = go_eng
 
             self.go_eng.logging = not silent
