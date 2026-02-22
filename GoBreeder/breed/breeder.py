@@ -106,7 +106,8 @@ class Breeder:
             self.log("CMDSTRING:" + cmdstr)
         # Use shlex.split to avoid shell=True with unvalidated config paths.
         args = shlex.split(cmdstr)
-        self._logger.debug("BREEDER: subprocess args: %s", args)
+        if config.show_cmd:
+            self._logger.debug("BREEDER: subprocess args: %s", args)
         game_process = subprocess.Popen(
             args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
