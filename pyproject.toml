@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gobreeder"
+version = "0.1.0"
+description = "Genetic-programming system that evolves Go-playing programs"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "plotly>=5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pandas-stubs",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["GoBreeder/breed"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501", "UP031"]  # E501: long lines; UP031: % formatting in legacy debug code
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

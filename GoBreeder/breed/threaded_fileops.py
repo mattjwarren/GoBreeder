@@ -1,46 +1,27 @@
-'''
-Created on 17 Jul 2015
-
-@author: matt
-'''
-'''implements background file ops'''
+"""Implements background file I/O operations using threads."""
 
 
-
+import logging
 import threading
-import config
-import os
+
+logger = logging.getLogger(__name__)
 
 
-from multiprocessing import pool
-
-from config import threads_or_processes
-
-
-
-logging=False
-def log(msg):
-    if logging:
-        if os.path.exists(config.runlog):
-            mode='a'
-        else:
-            mode='w'
-        logfile=open(config.runlog,mode)
-        logfile.write('threaded_files: '+msg+'\n')
-        logfile.close()
+def log(msg: str) -> None:
+    """Forward to Python logger at DEBUG level."""
+    logger.debug("threaded_fileops: %s", msg)
 
 
-def threaded_writelines(data,filehandle):
-    threading.Thread(target=_threaded_writelines(data,filehandle)).start()
-    log('write thread create')
-    
-def _threaded_writelines(data,filehandle):
+def threaded_writelines(data, filehandle):
+    threading.Thread(target=_threaded_writelines, args=(data, filehandle)).start()
+    log("write thread created")
+
+
+def _threaded_writelines(data, filehandle):
     if data[0]:
-        if not data[0][-1]=='\n':#if the first element doesnt have '\n' assume they all dont
-            data=[ d+'\n' for d in data ]
-            #must be a better way
+        if not data[0][-1] == "\n":  # if the first element doesnt have '\n' assume they all dont
+            data = [d + "\n" for d in data]
+            # must be a better way
     with filehandle as filehandle:
         filehandle.writelines(data)
-        log('write thread fin')
-    
-    
+        log("write thread fin")
