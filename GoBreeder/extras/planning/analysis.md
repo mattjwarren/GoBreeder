@@ -429,3 +429,213 @@ These are not necessarily “bugs” in the sense of breaking the original autho
 - Running many automated matches against a fixed opponent to drive selection pressure.
 
 If you want, I can also add a short “glossary” section (GTP, STN, freedoms, PC history) or produce a minimal “getting started on a fresh machine” doc tailored to your current Windows environment.
+
+---
+
+## Reorganisation plan (Cygwin → WSL2)
+
+### Motivation
+
+The project was originally written and deployed in a Windows + Cygwin environment.  The goals are:
+
+1. **Run under WSL2** – Python runs natively as a Linux process; shell scripts are standard bash; Windows `.exe` binaries are still called via WSL2 interop (WSL2 can execute `.exe` files from bash, which Windows then runs as a native process).
+2. **Cleaner directory layout** – separate concerns so it is immediately obvious where code, scripts, Windows binaries, and Java artefacts live.
+
+---
+
+### Target directory layout
+
+```
+GoBreeder/                          (repo root)
+│
+├── breed/                          ← ALL Python source code
+│   ├── __init__.py
+│   ├── board_info.py
+│   ├── breeder.py
+│   ├── config.py
+│   ├── data_structures.py
+│   ├── go_engine.py
+│   ├── mediator.py
+│   ├── play_gtp.py
+│   ├── simple_go.py
+│   ├── threaded_fileops.py
+│   ├── vm.py
+│   ├── ref_v0.1_exe                ← Linux-native referee binary (runs in WSL2)
+│   │
+│   ├── windows/                    ← Windows binaries (called via WSL2 interop)
+│   │   ├── gogui-twogtp.exe        ← match orchestrator (called by breeder.py)
+│   │   ├── gogui-dummy.exe         ← called by wrapdummy.sh
+│   │   ├── GoGui.exe
+│   │   ├── gogui-adapter.exe
+│   │   ├── gogui-client.exe
+│   │   ├── gogui-convert.exe
+│   │   ├── gogui-display.exe
+│   │   ├── gogui-regress.exe
+│   │   ├── gogui-server.exe
+│   │   ├── gogui-statistics.exe
+│   │   ├── gogui-terminal.exe
+│   │   ├── gogui-thumbnailer.exe
+│   │   ├── gnugo.exe
+│   │   ├── Uninstall.exe
+│   │   ├── cyggcc_s-1.dll          ← Cygwin DLLs required by the exe files
+│   │   ├── cygncurses-10.dll
+│   │   ├── cygwin1.dll
+│   │   ├── gogui.ico
+│   │   └── sgf.ico
+│   │
+│   └── java/                       ← Java artefacts (called via 'java -jar ...')
+│       ├── gosumi_2013.jar          ← default opponent bot
+│       └── gosumi_dks.jar
+│
+├── scripts/                        ← All shell scripts (deployment, run, wrappers)
+│   ├── breed_pop.sh                ← start a breeding run
+│   ├── deploy_breeder_instance.sh  ← deploy a numbered instance
+│   ├── redeploy_breeder.sh         ← redeploy while preserving state
+│   ├── twogtp_wrap.sh              ← manual twogtp test harness
+│   ├── sg_wrapper.sh               ← wrapper: play_gtp via simple_go
+│   ├── wrapdummy.sh                ← wrapper: gogui-dummy.exe
+│   ├── wrapper.sh                  ← wrapper: mediator with champion genome
+│   └── wrapper_c2.sh               ← wrapper: mediator with champ2
+│
+└── extras/                         ← Not required to deploy or run the breeder
+    ├── planning/
+    │   └── analysis.md             ← this file
+    ├── vmnotes.txt
+    ├── twogtp conversation.txt
+    ├── help                        ← (empty)
+    ├── deploy_config               ← (empty)
+    ├── external_go_docs/
+    │   ├── README                  ← GNU Go readme (informational only)
+    │   ├── COPYING
+    │   └── License.txt
+    ├── WinGoStarterKit.zip         ← Windows installer archive
+    ├── eclipse/
+    │   ├── .project
+    │   ├── .pydevproject
+    │   └── .settings/
+    └── tmp/                        ← old scratch / duplicate binaries
+        └── GoGui/
+```
+
+**Runtime-generated files** (not tracked in the target layout above, should be `.gitignore`d):
+
+| File | Notes |
+|------|-------|
+| `breed/breeding_genome.py` | written per-generation by `breeder.py` |
+| `breed/vm_running_genome.py` | written per-move by `vm.py` (debug aid) |
+| `breed/current_population.py` | live population file |
+| `breed/current_population.py_save` | previous-generation snapshot |
+| `breed/current_population.py_save_stats` | stats snapshot |
+| `breed/runlog.txt` | append-only run log |
+| `breed/histories/` | optional per-move recording tree |
+
+---
+
+### File mapping (old → new)
+
+| Old path | New path | Reason |
+|----------|----------|--------|
+| `breed_pop.sh` | `scripts/breed_pop.sh` | script |
+| `deploy_breeder_instance.sh` | `scripts/deploy_breeder_instance.sh` | script |
+| `redeploy_breeder.sh` | `scripts/redeploy_breeder.sh` | script |
+| `breed/twogtp_wrap.sh` | `scripts/twogtp_wrap.sh` | script |
+| `breed/external_go/sg_wrapper.sh` | `scripts/sg_wrapper.sh` | script |
+| `breed/external_go/wrapdummy.sh` | `scripts/wrapdummy.sh` | script |
+| `breed/external_go/wrapper.sh` | `scripts/wrapper.sh` | script |
+| `breed/external_go/wrapper_c2.sh` | `scripts/wrapper_c2.sh` | script |
+| `breed/external_go/gogui-twogtp.exe` | `breed/windows/gogui-twogtp.exe` | Windows binary |
+| `breed/external_go/[other .exe]` | `breed/windows/[same name]` | Windows binaries |
+| `breed/external_go/[*.dll]` | `breed/windows/[same name]` | Cygwin DLLs |
+| `breed/external_go/gogui.ico` | `breed/windows/gogui.ico` | Windows resource |
+| `breed/external_go/sgf.ico` | `breed/windows/sgf.ico` | Windows resource |
+| `breed/external_go/Uninstall.exe` | `breed/windows/Uninstall.exe` | Windows binary |
+| `breed/external_go/gosumi_2013.jar` | `breed/java/gosumi_2013.jar` | Java |
+| `breed/external_go/gosumi_dks.jar` | `breed/java/gosumi_dks.jar` | Java |
+| `breed/external_go/ref_v0.1_exe` | `breed/ref_v0.1_exe` | Linux binary |
+| `breed/external_go/README` | `extras/external_go_docs/README` | docs |
+| `breed/external_go/COPYING` | `extras/external_go_docs/COPYING` | docs |
+| `breed/external_go/License.txt` | `extras/external_go_docs/License.txt` | docs |
+| `breed/external_go/WinGoStarterKit.zip` | `extras/WinGoStarterKit.zip` | archive |
+| `breed/vmnotes.txt` | `extras/vmnotes.txt` | notes |
+| `breed/twogtp conversation.txt` | `extras/twogtp conversation.txt` | notes |
+| `breed/help` | `extras/help` | empty |
+| `breed/runlog.txt` | gitignored (runtime) | runtime |
+| `breed/current_population.py_save` | gitignored (runtime) | runtime |
+| `breed/current_population.py_save_stats` | gitignored (runtime) | runtime |
+| `deploy_config` | `extras/deploy_config` | unused |
+| `.project` / `.pydevproject` / `.settings/` | `extras/eclipse/` | IDE |
+| `breed/tmp/` | `extras/tmp/` | scratch |
+| `planning/` | `extras/planning/` | docs |
+
+---
+
+### config.py changes required for WSL2
+
+The key changes to `config.py` to support WSL2 are:
+
+1. **`basepath`** – change from Windows/Cygwin path to a Linux path:
+   ```python
+   # OLD (Cygwin):
+   basepath = "c:\\cygwin64\\home\\matth\\breeders\\GoBreeder_1\\breed\\"
+   # NEW (WSL2):
+   basepath = "/home/matth/breeders/GoBreeder_1/breed/"
+   ```
+
+2. **Split `external_go_basepath` into two** – separate paths for Windows binaries vs Java:
+   ```python
+   windows_basepath = _ensure_trailing_sep(_join_path(basepath, 'windows'))
+   java_basepath    = _ensure_trailing_sep(_join_path(basepath, 'java'))
+   ```
+
+3. **`pythonpath`** – change from Windows Python 2 to Linux Python 3:
+   ```python
+   # OLD:
+   pythonpath = 'c:\\python27amd64\\python.exe'
+   # NEW:
+   pythonpath = 'python3'
+   ```
+
+4. **`two_gtp_command`** – Windows exe is still called via WSL2 interop; the `.exe` is invocable from bash:
+   ```python
+   two_gtp_command = _join_path(windows_basepath, 'gogui-twogtp.exe')
+   ```
+
+5. **`referee_program_command`** – now a Linux binary in `breed/`:
+   ```python
+   referee_program_command = _join_path(basepath, 'ref_v0.1_exe')
+   ```
+
+6. **Java commands** – Java runs natively in WSL2:
+   ```python
+   gosumi      = '"java -jar %sgosumi_dks.jar"'    % java_basepath
+   gosumi_2013 = '"java -jar %sgosumi_2013.jar -timeout 1"' % java_basepath
+   ```
+
+7. **`gobreeder`** – update to use `python3` and Linux paths:
+   ```python
+   gobreeder = '"%s %smediator.py -genome_file %sbreeding_genome.py"' % (
+       pythonpath, basepath, basepath)
+   ```
+
+---
+
+### Shell script changes required for WSL2
+
+| Script | Change |
+|--------|--------|
+| `scripts/breed_pop.sh` | `python.exe` → `python3`; adjust path to reflect `breed/` relative to scripts location |
+| `scripts/deploy_breeder_instance.sh` | Remove Cygwin-style escaped backslash path for `breed_exec_base`; use a plain Linux path |
+| `scripts/wrapdummy.sh` | `$SCRIPT_DIR/gogui-dummy.exe` → now in `../breed/windows/gogui-dummy.exe` |
+| `scripts/sg_wrapper.sh` | `$BREED_DIR/play_gtp.py` path updated for new layout |
+| `scripts/wrapper.sh` / `wrapper_c2.sh` | `$BREED_DIR/mediator.py` path updated |
+
+---
+
+### Python 2 → 3 compatibility note
+
+`breeder.py` and `vm.py` contain Python 2-only syntax:
+
+- `print message` (bare `print` statement) – needs `print(message)`
+- `data_structures.py` has a `next()` method on an iterator class; Python 3 uses `__next__()`.
+
+These need to be addressed before the code will run under Python 3 on WSL2.  This is a separate task from the structural reorganisation.

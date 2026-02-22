@@ -30,13 +30,16 @@ def _join_path(base, *parts):
 	return out
 
 
-# basepath
-# basepath="/home/matth/breeders/GoBreeder_1/breed/"
-basepath="c:\\cygwin64\\home\\matth\\breeders\\GoBreeder_1\\breed\\"
+# basepath: absolute path to this breed/ directory on the WSL2 Linux filesystem.
+# Deploy scripts (scripts/deploy_breeder_instance.sh) rewrite this per-instance.
+basepath="/home/matth/breeders/GoBreeder_1/breed/"
 basepath=_ensure_trailing_sep(basepath)
 
-# external Go tools live here (moved from breed/ into breed/external_go/)
-external_go_basepath=_ensure_trailing_sep(_join_path(basepath, 'external_go'))
+# Windows binaries (gogui-twogtp.exe etc.) – called via WSL2 Windows interop.
+windows_basepath=_ensure_trailing_sep(_join_path(basepath, 'windows'))
+
+# Java artefacts (gosumi JARs) – invoked via native Linux 'java'.
+java_basepath=_ensure_trailing_sep(_join_path(basepath, 'java'))
 
 def set_basepath(new_basepath):
 	"""Update basepath and recompute derived paths.
@@ -45,7 +48,8 @@ def set_basepath(new_basepath):
 	Derived values (paths/command strings) must be recomputed to stay consistent.
 	"""
 	global basepath
-	global external_go_basepath
+	global windows_basepath
+	global java_basepath
 	global runlog
 	global vm_running_genome_file
 	global gobreeder
@@ -61,7 +65,8 @@ def set_basepath(new_basepath):
 	global history_stats_base
 
 	basepath=_ensure_trailing_sep(new_basepath)
-	external_go_basepath=_ensure_trailing_sep(_join_path(basepath, 'external_go'))
+	windows_basepath=_ensure_trailing_sep(_join_path(basepath, 'windows'))
+	java_basepath=_ensure_trailing_sep(_join_path(basepath, 'java'))
 
 	# all output goes here
 	runlog=_join_path(basepath, 'runlog.txt')
@@ -71,15 +76,17 @@ def set_basepath(new_basepath):
 
 	# breeder parms
 	# string to invoke the player program (note double quoting)
-	gobreeder='"%s %smediator.py -genome_file %sbreeding_genome.py"' % (pythonpath,basepath,basepath)
-	gosumi='"java -jar %sgosumi_dks.jar"' % external_go_basepath
-	gosumi_2013='"java -jar %sgosumi_2013.jar -timeout 1"' % external_go_basepath
+	gobreeder='"'+pythonpath+' '+basepath+'mediator.py -genome_file '+basepath+'breeding_genome.py"'
+	gosumi='"java -jar '+java_basepath+'gosumi_dks.jar"'
+	gosumi_2013='"java -jar '+java_basepath+'gosumi_2013.jar -timeout 1"'
 	player_program=gobreeder
 	# and for the enemy program
 	enemy_program=gosumi_2013
 
-	referee_program_command=_join_path(external_go_basepath, 'ref_v0.1_exe')
-	two_gtp_command=_join_path(external_go_basepath, 'gogui-twogtp.exe')
+	# ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
+	referee_program_command=_join_path(basepath, 'ref_v0.1_exe')
+	# gogui-twogtp.exe is a Windows binary in breed/windows/ (WSL2 interop calls it)
+	two_gtp_command=_join_path(windows_basepath, 'gogui-twogtp.exe')
 
 	# file to hold 'previous' generation - just-tested pop is copied to here
 	previous_population_file=_join_path(basepath, 'current_population.py_save')
@@ -103,16 +110,18 @@ vm_running_genome_file=_join_path(basepath, 'vm_running_genome.py')
 
 #breeder parms
 #string to invoke the player program (note double quoting)
-pythonpath='c:\\python27amd64\\python.exe'
-gobreeder='"%s %smediator.py -genome_file %sbreeding_genome.py"' % (pythonpath,basepath,basepath)
-gosumi='"java -jar %sgosumi_dks.jar"' % external_go_basepath
-gosumi_2013='"java -jar %sgosumi_2013.jar -timeout 1"' % external_go_basepath
+# WSL2: use the native Linux python3 interpreter
+pythonpath='python3'
+gobreeder='"'+pythonpath+' '+basepath+'mediator.py -genome_file '+basepath+'breeding_genome.py"'
+gosumi='"java -jar '+java_basepath+'gosumi_dks.jar"'
+gosumi_2013='"java -jar '+java_basepath+'gosumi_2013.jar -timeout 1"'
 player_program=gobreeder
 #and for the enemy program
-enemy_program=gosumi_2013#player_program[0:-1]+' -silent"'#
-referee_program_command=_join_path(external_go_basepath, 'ref_v0.1_exe')
-
-two_gtp_command=_join_path(external_go_basepath, 'gogui-twogtp.exe')
+enemy_program=gosumi_2013
+# ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
+referee_program_command=_join_path(basepath, 'ref_v0.1_exe')
+# gogui-twogtp.exe is a Windows binary in breed/windows/ (WSL2 interop calls it)
+two_gtp_command=_join_path(windows_basepath, 'gogui-twogtp.exe')
 
 #board size...
 board_size=9  #oh yeah, about this. MUST BE 9 until the near future...

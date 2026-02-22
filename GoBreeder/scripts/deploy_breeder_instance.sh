@@ -2,8 +2,8 @@ instance=${1}
 
 #root dir for instances
 deploy_base=/home/matth/breeders
-#exec base in the context of the system used to run a breed
-breed_exec_base="C:\\\\\\\\cygwin64\\\\\\\\home\\\\\\\\matth\\\\\\\\breeders\\\\\\\\GoBreeder_${1}\\\\\\\\breed\\\\\\\\"
+# WSL2: basepath is a plain Linux path inside the WSL2 filesystem
+breed_exec_base="${deploy_base}/GoBreeder_${instance}/breed/"
 
 target_dir=${deploy_base}/GoBreeder_${instance}
 
