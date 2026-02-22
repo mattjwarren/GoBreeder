@@ -43,11 +43,12 @@ class BreedingRunController(QObject):
         genome_file = str(deployment.population_file_path())
         mediator = str(deployment.breed_dir / "mediator.py")
 
-        program = "uv"
-        if sys.platform == "win32":
-            args = ["run", "python", mediator, "-gtp_breed", "-genome_file", genome_file]
-        else:
-            args = ["run", "python3", mediator, "-gtp_breed", "-genome_file", genome_file]
+        # Use the same Python interpreter that is running the GUI so that all
+        # installed packages (pandas, plotly, etc.) are available.  Using
+        # "uv run" would require a pyproject.toml in the deployment directory
+        # and can silently pick up the wrong environment.
+        program = sys.executable
+        args = [mediator, "-gtp_breed", "-genome_file", genome_file]
 
         logger.debug("Starting process: %s %s", program, " ".join(args))
         self._process.start(program, args)
