@@ -12,6 +12,7 @@
 * Keep business log separated
 * keep domain logic separated
 * use modern python coding practicces, for example always use pydantic and dont create raw dicts. When possible dict content should not be raw strings
+* use Enums instead of related constants at a module level
 * when creating code that is used as an interface in python use Protocol
 * never use inline imports always place imports at the top of a file
 * never implement fallback code for missing imports unless necessary for running under different operating systems
