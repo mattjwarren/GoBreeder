@@ -325,7 +325,10 @@ if __name__=='__main__':
             else:
                 basepath=os.getcwd()+'/'
 
-            config.basepath=basepath
+            if hasattr(config, 'set_basepath'):
+                config.set_basepath(basepath)
+            else:
+                config.basepath=basepath
 
             breed=args.gtp_breed
             silent=args.silent

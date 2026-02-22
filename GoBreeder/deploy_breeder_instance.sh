@@ -17,6 +17,6 @@ mkdir -p ${target_dir}
 cp -R ${deploy_base}/GoBreeder/* ${target_dir}
 
 #update basepath in config
-cat ${target_dir}/breed/config.py | sed -e "s!basepath=.*!basepath=\"${breed_exec_base}\"!g" > ${target_dir}/breed/config.py_sed
+cat ${target_dir}/breed/config.py | sed -E -e "s!^basepath=.*!basepath=\"${breed_exec_base}\"!g" > ${target_dir}/breed/config.py_sed
 mv ${target_dir}/breed/config.py_sed ${target_dir}/breed/config.py
 
