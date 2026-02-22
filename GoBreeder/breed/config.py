@@ -174,5 +174,5 @@ threads_or_processes = False
 # show cmd breeder executes to play two players against each other
 show_cmd = True
 
-graph_move_pc = True
-show_board_every_move = True
+graph_move_pc = False  # set True only for interactive/debug single-game runs
+show_board_every_move = False  # set True only for interactive/debug single-game runs

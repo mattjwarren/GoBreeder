@@ -17,7 +17,10 @@ import vm
 from logging_config import setup_logging
 from threaded_fileops import threaded_writelines
 
-pio.renderers.default = "browser"
+# Use a non-interactive renderer so fig.show() writes JSON rather than opening
+# a browser window.  Breeding runs are headless; browser rendering is only
+# useful for interactive single-game debugging and must be enabled explicitly.
+pio.renderers.default = "json"
 
 logger = logging.getLogger(__name__)
 
