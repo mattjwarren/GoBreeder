@@ -30,6 +30,7 @@ htmlcov/
 # Logs
 logs/
 *.log
+runlog.txt
 
 # GoBreeder runtime generated file (histories are instance-specific, not committed)
 GoBreeder/breed/histories/
