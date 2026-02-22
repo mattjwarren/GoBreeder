@@ -7,6 +7,30 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # DEPLOY_BASE = clone root; instances are created here as siblings of GoBreeder/
 DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
 
+# ---------------------------------------------------------------------------
+# Java availability check
+#
+# The enemy Go program (gosumi) is a JAR file.  It is launched by
+# gogui-twogtp.exe, which is a Windows binary executed via WSL2 interop.
+# Because gogui-twogtp.exe runs as a Windows process it cannot see the WSL2
+# Linux java directly; instead config.py wraps the command with 'wsl java …'
+# so that gogui-twogtp.exe delegates back to the WSL2 runtime.
+#
+# This means we need Linux java (java / java.exe via 'wsl') to be present
+# inside WSL2.  If it is missing, every single move attempt causes Windows to
+# open a browser window prompting the user to install Java.
+# ---------------------------------------------------------------------------
+if ! command -v java &>/dev/null; then
+    echo "ERROR: 'java' not found in this WSL2 environment." >&2
+    echo "" >&2
+    echo "The gosumi opponent is a Java JAR launched by gogui-twogtp.exe (a Windows" >&2
+    echo "binary). config.py routes the java call back through WSL2 using 'wsl java'." >&2
+    echo "Please install a JRE/JDK inside WSL2 before deploying, e.g.:" >&2
+    echo "  sudo apt-get install -y default-jre" >&2
+    exit 1
+fi
+echo "Java found: $(java -version 2>&1 | head -1)"
+
 instance=${1}
 
 deploy_base="${DEPLOY_BASE}"

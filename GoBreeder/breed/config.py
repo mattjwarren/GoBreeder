@@ -39,7 +39,8 @@ basepath = _ensure_trailing_sep(os.path.dirname(os.path.abspath(__file__)))
 # Windows binaries (gogui-twogtp.exe etc.) – called via WSL2 Windows interop.
 windows_basepath = _ensure_trailing_sep(_join_path(basepath, "windows"))
 
-# Java artefacts (gosumi JARs) – invoked via native Linux 'java'.
+# Java artefacts (gosumi JARs) – invoked via 'wsl java' so that gogui-twogtp.exe
+# (a Windows process) delegates back to the WSL2 Linux JRE.
 java_basepath = _ensure_trailing_sep(_join_path(basepath, "java"))
 
 
@@ -79,8 +80,11 @@ def set_basepath(new_basepath):
     # breeder parms
     # string to invoke the player program (note double quoting)
     gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
-    gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-    gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+    # gosumi JARs are launched by gogui-twogtp.exe which is a Windows process (WSL2
+    # interop).  Windows cannot see WSL2's java, so we prefix with 'wsl' to route
+    # the java invocation back through the WSL2 runtime.
+    gosumi = '"wsl java -jar ' + java_basepath + 'gosumi_dks.jar"'
+    gosumi_2013 = '"wsl java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
     player_program = gobreeder
     # and for the enemy program
     enemy_program = gosumi_2013
@@ -115,8 +119,11 @@ vm_running_genome_file = _join_path(basepath, "vm_running_genome.py")
 # Use uv to run python so the project venv is always active.
 pythonpath = "uv run python3"
 gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
-gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
-gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+# gosumi JARs are launched by gogui-twogtp.exe which is a Windows process (WSL2
+# interop).  Windows cannot see WSL2's java, so we prefix with 'wsl' to route
+# the java invocation back through the WSL2 runtime.
+gosumi = '"wsl java -jar ' + java_basepath + 'gosumi_dks.jar"'
+gosumi_2013 = '"wsl java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
 player_program = gobreeder
 # and for the enemy program
 enemy_program = gosumi_2013
