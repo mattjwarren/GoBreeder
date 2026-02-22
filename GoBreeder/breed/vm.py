@@ -18,7 +18,7 @@ import datetime
 logging=False
 def log(message):
     if logging:
-        print message
+        print(message)
 
 class GoVM(object):
     working_X_registers=[ 'X'+str(N) for N in range(0,8) ] #change in gogenmoe to
@@ -746,8 +746,8 @@ class GoVM(object):
         #NEED TO IMPLEMENT pc LOOP DETECTION /ora t least stuck-pc etc../
         while (self.reg_clock<max_clocks) and (self.reg_pc<len(self.program)):
             if self.reg_pc<0:
-                print 'DEBUG: REG_PC less than ZERO!! =',self.reg_pc
-                print 'STAACK',self.stack_memory[-1:]
+                print('DEBUG: REG_PC less than ZERO!! =', self.reg_pc)
+                print('STAACK', self.stack_memory[-1:])
                 global logging
                 logging=True
                 self.reg_pc=self.old_pc
@@ -830,7 +830,7 @@ class GoVM(object):
                 log('\tIncr reg_pc')
                 self.reg_pc+=1
             if self.reg_HALT:
-                print 'FORCED HALT BY reg_HALT'
+                print('FORCED HALT BY reg_HALT')
                 sys.exit(0)
             log('\tIncr reg_clock')
             self.reg_clock+=1

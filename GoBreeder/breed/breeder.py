@@ -62,10 +62,10 @@ class Breeder(object):
                     genome=data_structures.GoGenome(dna=dna)
                     self.population.append(genome)
                     self.genome_stats[self.population[-1]]=''
-                    print "Done ressurrect of genome #",ctr
+                    print("Done ressurrect of genome #", ctr)
                     ctr+=1
                 except SyntaxError:
-                    print "Genome FAILED to resurrect #",ctr
+                    print("Genome FAILED to resurrect #", ctr)
                     pass
         else:
             self.log('breeder using genome genesis\n')
@@ -110,8 +110,10 @@ class Breeder(object):
 												                         config.referee_program_command)
         if config.show_cmd: self.log("CMDSTRING:"+cmdstr)
         game_process=subprocess.Popen(cmdstr,
+                                      shell=True,
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE,
+                                      text=True)
         sout,serr=game_process.communicate()
         
         move_made='genmove' #integer /2 is good enough
@@ -125,7 +127,7 @@ class Breeder(object):
                 tokens=line.split()
                 if tokens[-3].lower()==player.lower():
                     won=True
-        moves=moves/2
+        moves=moves//2
         self.log('\tevaluation: moves made=%d i_win %s\n' % (moves,str(won)))
         
         return {'moves_made':moves,
@@ -260,7 +262,7 @@ class Breeder(object):
         #and pare out any not in population
         stats_filename=config.previous_population_stats_file
         stats_file=open(stats_filename,'w')
-        for genome in self.genome_stats.keys():
+        for genome in list(self.genome_stats.keys()):
             if genome in self.population: #if genome was in population tested, then do stats
                 stats_file.write(repr(genome.dna)+'<<<>>>'+repr(self.genome_stats[genome])+'<<<>>>'+str(fitness)+'\n')
             if genome not in new_pop: #if genome is not in new pop then kill its info

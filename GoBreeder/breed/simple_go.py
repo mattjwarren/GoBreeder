@@ -17,7 +17,7 @@
 #Also possibility is to crosslink between concepts and documented code.
 
 
-import re, string, time, random, sys
+import re, time, random, sys
 from types import *
 from math import sqrt
 from copy import deepcopy
@@ -47,7 +47,7 @@ def string_as_move(m, size):
           example: B3 -> (2, 3)
     """
     if m=="PASS": return PASS_MOVE
-    x = string.find(x_coords_string, m[0]) + 1
+    x = x_coords_string.find(m[0]) + 1
     y = int(m[1:])
     return x,y
 
@@ -92,7 +92,7 @@ class Board:
         stones = []
         for pos in self.iterate_goban():
             stones.append(self.goban[pos])
-        return string.join(stones, "")
+        return "".join(stones)
 
     def change_side(self):
         self.side = other_side[self.side]
@@ -288,8 +288,8 @@ def main():
     while True:
         move = g.generate_move()
         g.make_move(move)
-        print move_as_string(move, g.size)
-        print g.current_board
+        print(move_as_string(move, g.size))
+        print(g.current_board)
         #if last 2 moves are pass moves: exit loop 
         if len(g.move_history)>=2 and \
            g.move_history[-1]==PASS_MOVE and \

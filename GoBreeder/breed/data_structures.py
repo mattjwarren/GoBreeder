@@ -21,9 +21,12 @@ class CircularList(object):
             direction='>'
         return direction+str(self._ptr)+str(self.values)
     
-    def next(self):
+    def __next__(self):
         return self.get()
-        
+
+    # Python 2 compatibility alias (vm.py calls .next() explicitly)
+    next = __next__
+
     def _post_increment(self):
         self._ptr+=self._direction
         if self._ptr<0:
@@ -324,7 +327,7 @@ class GoGenome(object):
 
     def render(self):
         for opcode,opdata in self.dna:
-            print opcode,opdata    
+            print(opcode, opdata)
     
     
     
