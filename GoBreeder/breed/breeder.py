@@ -55,10 +55,10 @@ class Breeder:
                     genome = data_structures.GoGenome(dna=dna)
                     self.population.append(genome)
                     self.genome_stats[self.population[-1]] = ""
-                    print("Done ressurrect of genome #", ctr)
+                    self.log(f"ressurrected genome #{ctr}\n")
                     ctr += 1
                 except (SyntaxError, ValueError):
-                    print("Genome FAILED to resurrect #", ctr)
+                    self.log(f"Genome FAILED to resurrect #{ctr}\n")
         else:
             self.log("breeder using genome genesis\n")
             for _n in range(0, population_size):
@@ -121,27 +121,35 @@ class Breeder:
         all_lines = sout.split("\n") + serr_lines
         moves = sum(1 for ln in all_lines if "genmove" in ln) // 2
 
-        # Extract the referee's final_score response.
-        # In -verbose mode gogui-twogtp writes lines like "R<< = B+R" to stderr.
+        # Extract the final_score response from any participating program.
+        # In -verbose mode gogui-twogtp writes "<prefix>>> command" / "<prefix><< response"
+        # lines to stderr for every GTP exchange.  ref_v0.1_exe does not support
+        # final_score and always returns an error; the black/white players (gosumi etc.)
+        # do support it, so we accept a success response ("<<< =") from any client label.
         # For each "final_score >>" request line, scan the next 10 lines for
-        # the matching "R<< =" response.  This is more robust than a two-step
-        # flag because intervening blank lines / timing output cannot derail it.
+        # the matching "<< =" response.
         result_str = "?"  # unknown
         for i, ln in enumerate(serr_lines):
             if "final_score" in ln and ">>" in ln:
                 for response_ln in serr_lines[i + 1 : i + 11]:
-                    if "R<< =" in response_ln:
-                        parts = response_ln.split("R<< =", 1)
+                    # Accept a success response from any GTP client (B, W, R, O).
+                    # The referee (ref_v0.1_exe) does not support final_score and
+                    # returns an error; the black/white players typically do.
+                    if "<< =" in response_ln:
+                        sep = "<< ="
+                        parts = response_ln.split(sep, 1)
                         candidate = parts[1].strip() if len(parts) > 1 else ""
                         if candidate:
                             result_str = candidate
                         break
+            if result_str != "?":
+                break
         if result_str == "?":
             # Log nearby context to help diagnose parsing failures.
             context = [
                 f"  [{j}] {serr_lines[j]}"
                 for j in range(len(serr_lines))
-                if "final_score" in serr_lines[j] or "R<<" in serr_lines[j]
+                if "final_score" in serr_lines[j] or "<<" in serr_lines[j]
             ]
             self._logger.debug(
                 "BREEDER: result_str still '?' after parsing — relevant serr lines:\n%s",
