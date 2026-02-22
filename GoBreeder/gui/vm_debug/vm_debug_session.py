@@ -7,7 +7,7 @@ from typing import Any
 
 # Ensure breed/ directory is importable (steppable_vm lives there, not in package).
 _BREED_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "breed")
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "breed")
 )
 if _BREED_DIR not in sys.path:
     sys.path.insert(0, _BREED_DIR)

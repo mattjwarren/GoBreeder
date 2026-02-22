@@ -28,7 +28,7 @@ dev = [
 gobreeder-gui = "GoBreeder.gui.app:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["GoBreeder/breed", "GoBreeder/gui"]
+packages = ["GoBreeder"]
 
 [tool.ruff]
 line-length = 120
