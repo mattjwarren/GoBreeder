@@ -4,6 +4,7 @@ import datetime
 import logging
 import random
 import shlex
+import time
 import shutil
 import subprocess
 
@@ -74,6 +75,7 @@ class Breeder:
         self, player="black", player_program=config.player_program, enemy_program=config.enemy_program
     ):
         enemy_player = "black" if player == "white" else "white"
+        _game_start = time.monotonic()
         # Put genome to test into genome_test file
         # get command for program to test against
         self.log("Simulating GTP game for breeding\n")
@@ -114,23 +116,36 @@ class Breeder:
         self._logger.debug("BREEDER: subprocess returncode: %d", returncode)
 
         # Count genmove calls (each pair = one full move from each side).
-        all_lines = sout.split("\n") + serr.split("\n")
+        serr_lines = serr.split("\n")
+        all_lines = sout.split("\n") + serr_lines
         moves = sum(1 for ln in all_lines if "genmove" in ln) // 2
 
         # Extract the referee's final_score response.
         # In -verbose mode gogui-twogtp writes lines like "R<< = B+R" to stderr.
+        # For each "final_score >>" request line, scan the next 10 lines for
+        # the matching "R<< =" response.  This is more robust than a two-step
+        # flag because intervening blank lines / timing output cannot derail it.
         result_str = "?"  # unknown
-        after_final_score = False
-        for ln in serr.split("\n"):
+        for i, ln in enumerate(serr_lines):
             if "final_score" in ln and ">>" in ln:
-                after_final_score = True
-                continue
-            if after_final_score and "R<< =" in ln:
-                parts = ln.split("R<< =", 1)
-                candidate = parts[1].strip() if len(parts) > 1 else ""
-                if candidate:
-                    result_str = candidate
-                after_final_score = False
+                for response_ln in serr_lines[i + 1 : i + 11]:
+                    if "R<< =" in response_ln:
+                        parts = response_ln.split("R<< =", 1)
+                        candidate = parts[1].strip() if len(parts) > 1 else ""
+                        if candidate:
+                            result_str = candidate
+                        break
+        if result_str == "?":
+            # Log nearby context to help diagnose parsing failures.
+            context = [
+                f"  [{j}] {serr_lines[j]}"
+                for j in range(len(serr_lines))
+                if "final_score" in serr_lines[j] or "R<<" in serr_lines[j]
+            ]
+            self._logger.debug(
+                "BREEDER: result_str still '?' after parsing — relevant serr lines:\n%s",
+                "\n".join(context) if context else "  (none found)",
+            )
 
         # Determine win from result string (e.g. "B+R", "W+3.5").
         # The result_str starts with 'B' for Black win, 'W' for White win.
@@ -149,7 +164,7 @@ class Breeder:
         # Child calls go_eng.render_board() unconditionally on receiving 'quit'; each row
         # is logged as "ENGINE: \t<row>" and goes to child's stderr (captured in serr here).
         board_rows = []
-        for ln in serr.split("\n"):
+        for ln in serr_lines:
             if "ENGINE:" not in ln:
                 continue
             idx = ln.find("ENGINE:")
@@ -173,9 +188,10 @@ class Breeder:
             "BREEDER: --- GAME RESULT --- player=%s result=%s moves=%d i_win=%s genome=%s",
             player, result_str, moves, won, genome_hash,
         )
-        self.log(f"\tevaluation: moves made={moves} result={result_str} i_win {won}\n")
+        elapsed = time.monotonic() - _game_start
+        self.log(f"\tevaluation: moves made={moves} result={result_str} i_win {won} elapsed {elapsed:.1f}s\n")
 
-        return {"moves_made": moves, "i_win": won, "result": result_str}
+        return {"moves_made": moves, "i_win": won, "result": result_str, "elapsed_s": elapsed}
 
     def log(self, msg: str) -> None:
         """Forward to Python logger at DEBUG level."""

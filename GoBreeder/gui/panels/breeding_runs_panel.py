@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -69,8 +70,11 @@ class BreedingRunsPanel(QWidget):
         ctrl_layout.setContentsMargins(0, 0, 0, 0)
         self._btn_start_stop = QPushButton("Start Run")
         self._btn_start_stop.setEnabled(False)
+        self._btn_clear_log = QPushButton("Clear Log")
+        self._btn_clear_log.setEnabled(False)
         self._generation_label = QLabel("Generation: —")
         ctrl_layout.addWidget(self._btn_start_stop)
+        ctrl_layout.addWidget(self._btn_clear_log)
         ctrl_layout.addWidget(self._generation_label)
         ctrl_layout.addStretch()
         right_layout.addWidget(ctrl_row)
@@ -90,6 +94,7 @@ class BreedingRunsPanel(QWidget):
         layout.addWidget(splitter)
 
         self._btn_start_stop.clicked.connect(self._on_start_stop)
+        self._btn_clear_log.clicked.connect(self._on_clear_log)
 
     def _refresh_list(self) -> None:
         self._list.clear()
@@ -122,6 +127,7 @@ class BreedingRunsPanel(QWidget):
         if d is None:
             self._btn_start_stop.setEnabled(False)
             self._btn_start_stop.setText("Start Run")
+            self._btn_clear_log.setEnabled(False)
             self._generation_label.setText("Generation: —")
             return
 
@@ -138,6 +144,7 @@ class BreedingRunsPanel(QWidget):
             self._btn_start_stop.setText("Start Run")
             self._btn_start_stop.setEnabled(True)
 
+        self._btn_clear_log.setEnabled(True)
         gen = self._generation_counters.get(d.name, 0)
         self._generation_label.setText(f"Generation: {gen}")
 
@@ -145,6 +152,14 @@ class BreedingRunsPanel(QWidget):
         self._log_view.clear()
         if self._selected_name and self._selected_name in self._log_buffers:
             self._log_view.setPlainText("\n".join(self._log_buffers[self._selected_name]))
+            self._log_view.moveCursor(QTextCursor.MoveOperation.End)
+
+    def _on_clear_log(self) -> None:
+        if self._selected_name is None:
+            return
+        self._log_buffers[self._selected_name] = []
+        self._log_view.clear()
+        logger.debug("Cleared log buffer for deployment '%s'", self._selected_name)
 
     def _on_start_stop(self) -> None:
         d = self._get_selected_deployment()
