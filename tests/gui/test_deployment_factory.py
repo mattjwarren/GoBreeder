@@ -54,6 +54,16 @@ class TestDeploymentFactory:
             if src.exists():
                 assert (model.breed_dir / fname).exists(), f"{fname} was not copied"
 
+    def test_gogui_dir_present_in_deployment(self, tmp_path: Path) -> None:
+        """gogui-v1.6.0-bin must be present alongside breed/ for two_gtp_command."""
+        gogui_src = REPO_ROOT / "GoBreeder" / "gogui-v1.6.0-bin"
+        if not gogui_src.exists():
+            pytest.skip("gogui-v1.6.0-bin not present in repo")
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        gogui_dst = model.deployment_dir / "gogui-v1.6.0-bin"
+        assert gogui_dst.exists(), "gogui-v1.6.0-bin missing from deployment directory"
+
     def test_raises_if_directory_already_exists(self, tmp_path: Path) -> None:
         factory = DeploymentFactory()
         # Pre-create the target directory

@@ -98,6 +98,21 @@ class DeploymentFactory:
                 shutil.copytree(src_subdir, dst_subdir)
                 logger.debug("Copied subdir %s -> %s", src_subdir, dst_subdir)
 
+        # Link or copy gogui-v1.6.0-bin/ into deployment_dir alongside breed/.
+        # breeder.py's two_gtp_command expects it at <deployment_dir>/gogui-v1.6.0-bin/.
+        # Use a symlink on Linux (the production runtime) to avoid duplicating 11 MB;
+        # fall back to a full copy on Windows (dev/test environment).
+        gogui_src = repo_root / "GoBreeder" / "gogui-v1.6.0-bin"
+        gogui_dst = deployment_dir / "gogui-v1.6.0-bin"
+        if gogui_src.exists() and not gogui_dst.exists():
+            try:
+                os.symlink(gogui_src.resolve(), gogui_dst)
+                logger.debug("Symlinked gogui: %s -> %s", gogui_dst, gogui_src)
+            except OSError:
+                # Windows without symlink privileges — fall back to copying
+                shutil.copytree(gogui_src, gogui_dst)
+                logger.debug("Copied gogui (symlink unavailable): %s -> %s", gogui_src, gogui_dst)
+
         # Generate config.py with correct basepath
         _write_config(breed_dir)
 
