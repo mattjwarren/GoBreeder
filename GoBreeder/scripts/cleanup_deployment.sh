@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# cleanup_deployment.sh <instance>
+# cleanup_deployment.sh [--archive-genomes] <instance>
 #
 # Archives all genome/population files from a deployed breeder instance into a
-# timestamped compressed tarball saved to DEPLOY_BASE, then deletes the instance.
+# timestamped compressed tarball saved to DEPLOY_BASE.
+# By default also deletes the instance after archiving.
+#
+# Options:
+#   --archive-genomes   Create the tarball only; do not delete the instance.
 #
 # Archive contents:
 #   breed/current_population.py             – live population being evaluated
@@ -18,8 +22,28 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
 
+ARCHIVE_ONLY=false
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --archive-genomes)
+            ARCHIVE_ONLY=true
+            shift
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            echo "Usage: $0 [--archive-genomes] <instance>" >&2
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <instance>" >&2
+    echo "Usage: $0 [--archive-genomes] <instance>" >&2
     exit 1
 fi
 
@@ -60,6 +84,10 @@ else
     echo "Archive created: ${ARCHIVE_PATH}"
 fi
 
-echo "Deleting instance ${instance} at ${INST_DIR}..."
-rm -rf "${INST_DIR}"
-echo "Done. GoBreeder_${instance} removed."
+if [ "${ARCHIVE_ONLY}" = true ]; then
+    echo "Archive-only mode — GoBreeder_${instance} left in place."
+else
+    echo "Deleting instance ${instance} at ${INST_DIR}..."
+    rm -rf "${INST_DIR}"
+    echo "Done. GoBreeder_${instance} removed."
+fi
