@@ -137,7 +137,10 @@ class GoEngine:
                     pieces += 1
 
             if not dont_render_board:
-                self.log("\t" + row + "\n")
+                # Log at INFO so the row reaches breeder.py's serr parser even
+                # when the subprocess (mediator) is running at the default INFO
+                # level.  The "ENGINE: \t" prefix is the recognised sentinel.
+                logger.info("ENGINE: \t%s", row)
             board_rows.append(row + "\n")
         if not dont_render_board:
             self.log("\n")
