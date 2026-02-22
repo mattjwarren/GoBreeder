@@ -43,3 +43,10 @@ GoBreeder/breed/histories/
 # OS
 .DS_Store
 Thumbs.db
+
+# Old Windows gogui binaries (breed/windows/) – replaced by bundled Linux gogui
+GoBreeder/breed/windows/
+
+# gogui distribution – exclude IDE and build output folders
+GoBreeder/gogui-v1.6.0-bin/gogui/.idea/
+GoBreeder/gogui-v1.6.0-bin/gogui/out/

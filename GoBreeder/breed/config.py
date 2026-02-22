@@ -36,9 +36,6 @@ def _join_path(base, *parts):
 # 'git clone' without needing deploy-script sed rewrites.
 basepath = _ensure_trailing_sep(os.path.dirname(os.path.abspath(__file__)))
 
-# Windows binaries kept for reference but no longer used for game execution.
-windows_basepath = _ensure_trailing_sep(_join_path(basepath, "windows"))
-
 # Java artefacts (gosumi JARs) – invoked via Linux 'java' by gogui-twogtp (Linux).
 java_basepath = _ensure_trailing_sep(_join_path(basepath, "java"))
 
@@ -50,7 +47,6 @@ def set_basepath(new_basepath):
     Derived values (paths/command strings) must be recomputed to stay consistent.
     """
     global basepath
-    global windows_basepath
     global java_basepath
     global runlog
     global vm_running_genome_file
@@ -67,7 +63,6 @@ def set_basepath(new_basepath):
     global history_stats_base
 
     basepath = _ensure_trailing_sep(new_basepath)
-    windows_basepath = _ensure_trailing_sep(_join_path(basepath, "windows"))
     java_basepath = _ensure_trailing_sep(_join_path(basepath, "java"))
 
     # all output goes here
@@ -89,9 +84,11 @@ def set_basepath(new_basepath):
 
     # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
     referee_program_command = _join_path(basepath, "ref_v0.1_exe")
-    # Use the Linux gogui-twogtp command (installed via apt install gogui).
-    # Avoids WSL2 Windows interop entirely – no Windows Java dependency.
-    two_gtp_command = "gogui-twogtp"
+    # Bundled Linux gogui-twogtp script from gogui-v1.6.0-bin (sibling of breed/).
+    # Uses Linux java to run the JAR – no Windows interop needed.
+    two_gtp_command = os.path.normpath(
+        os.path.join(basepath, "..", "gogui-v1.6.0-bin", "gogui", "bin", "gogui-twogtp")
+    )
 
     # file to hold 'previous' generation - just-tested pop is copied to here
     previous_population_file = _join_path(basepath, "current_population.py_save")
@@ -127,9 +124,11 @@ player_program = gobreeder
 enemy_program = gosumi_2013
 # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
 referee_program_command = _join_path(basepath, "ref_v0.1_exe")
-# Use the Linux gogui-twogtp command (installed via apt install gogui).
-# Avoids WSL2 Windows interop entirely – no Windows Java dependency.
-two_gtp_command = "gogui-twogtp"
+# Bundled Linux gogui-twogtp script from gogui-v1.6.0-bin (sibling of breed/).
+# Uses Linux java to run the JAR – no Windows interop needed.
+two_gtp_command = os.path.normpath(
+    os.path.join(basepath, "..", "gogui-v1.6.0-bin", "gogui", "bin", "gogui-twogtp")
+)
 
 # board size...
 board_size = 9  # oh yeah, about this. MUST BE 9 until the near future...

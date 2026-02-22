@@ -11,15 +11,14 @@ DEPLOY_BASE="$(cd "$REPO_DIR/.." && pwd)"
 # Dependency checks
 #
 # Game execution is entirely Linux-native:
-#   gogui-twogtp  (Linux)  orchestrates the game
-#   java          (Linux)  runs the gosumi opponent JAR
+#   gogui-twogtp  (Linux, bundled in gogui-v1.6.0-bin/)  orchestrates games
+#   java          (Linux)  runs the gosumi opponent JAR and gogui-twogtp
 #   ref_v0.1_exe  (Linux)  acts as referee
 #
-# No Windows Java or WSL2 interop is needed for game execution.
-# The Windows .exe files in breed/windows/ are kept but unused.
+# No Windows Java or WSL2 interop is needed.
 # ---------------------------------------------------------------------------
 
-# 1. Linux Java – needed to run the gosumi JARs.
+# Linux Java – needed to run gogui-twogtp.jar and the gosumi JARs.
 if ! command -v java &>/dev/null; then
     echo "ERROR: 'java' not found in this WSL2 environment." >&2
     echo "Please install a JRE/JDK, e.g.:" >&2
@@ -27,18 +26,6 @@ if ! command -v java &>/dev/null; then
     exit 1
 fi
 echo "Linux Java found: $(java -version 2>&1 | head -1)"
-
-# 2. gogui-twogtp – Linux command that orchestrates two-player GTP games.
-#    Install via: sudo apt-get install -y gogui
-if ! command -v gogui-twogtp &>/dev/null; then
-    echo "'gogui-twogtp' not found. Attempting to install via apt..." >&2
-    if ! sudo apt-get install -y gogui; then
-        echo "ERROR: Could not install gogui. Please install it manually:" >&2
-        echo "  sudo apt-get install -y gogui" >&2
-        exit 1
-    fi
-fi
-echo "gogui-twogtp found: $(command -v gogui-twogtp)"
 
 instance=${1}
 
@@ -56,11 +43,11 @@ mkdir -p "${target_dir}"
 cp -R "${REPO_DIR}/"* "${target_dir}"
 
 # Ensure all executables have the execute bit set.
-# Windows .exe files need this in WSL2 for interop to invoke them.
-# The Linux referee binary and all shell scripts also need it.
-find "${target_dir}" -name "*.exe" -exec chmod +x {} +
+# The Linux referee binary and all shell scripts need it.
+# The bundled gogui bin/ scripts also need it.
 find "${target_dir}" -name "*.sh"  -exec chmod +x {} +
 chmod +x "${target_dir}/breed/ref_v0.1_exe"
+find "${target_dir}/gogui-v1.6.0-bin/gogui/bin" -type f -exec chmod +x {} +
 
 # Create an isolated virtual environment for this instance and install all
 # runtime dependencies declared in pyproject.toml.
