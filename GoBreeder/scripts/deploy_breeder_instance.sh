@@ -22,3 +22,12 @@ mkdir -p "${target_dir}"
 # config.py auto-detects its own basepath via __file__, so no sed rewrite needed.
 cp -R "${REPO_DIR}/"* "${target_dir}"
 
+# Create an isolated virtual environment for this instance and install all
+# runtime dependencies declared in pyproject.toml.
+# uv run (used by all scripts) walks up from the cwd and will find this .venv
+# automatically when scripts cd into breed/.
+echo "Creating virtual environment for instance ${instance}..."
+cd "${target_dir}"
+uv sync --no-dev
+echo "Virtual environment ready at ${target_dir}/.venv"
+
