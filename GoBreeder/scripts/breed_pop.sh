@@ -9,6 +9,6 @@ TARGET_BREED="${DEPLOY_BASE}/GoBreeder_${instance}/breed"
 
 cd "${TARGET_BREED}"
 rm -f runlog.txt
-python3 mediator.py -gtp_breed -genome_file current_population.py &
+uv run python3 mediator.py -gtp_breed -genome_file current_population.py &
 sleep 3
 tail -f runlog.txt

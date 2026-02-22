@@ -112,8 +112,8 @@ vm_running_genome_file = _join_path(basepath, "vm_running_genome.py")
 
 # breeder parms
 # string to invoke the player program (note double quoting)
-# WSL2: use the native Linux python3 interpreter
-pythonpath = "python3"
+# Use uv to run python so the project venv is always active.
+pythonpath = "uv run python3"
 gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + basepath + 'breeding_genome.py"'
 gosumi = '"java -jar ' + java_basepath + 'gosumi_dks.jar"'
 gosumi_2013 = '"java -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
