@@ -19,7 +19,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logging(log_dir: str, level: int = logging.DEBUG) -> None:
+def setup_logging(log_dir: str, level: int = logging.INFO) -> None:
     """Configure root logger with a StreamHandler (stdout) + RotatingFileHandler.
 
     Parameters
@@ -27,7 +27,9 @@ def setup_logging(log_dir: str, level: int = logging.DEBUG) -> None:
     log_dir:
         Directory in which to create ``gobreeder.log``.  Created if absent.
     level:
-        Root logging level (default DEBUG).
+        Root logging level (default INFO).  Pass ``logging.DEBUG`` to enable
+        verbose diagnostic output (subprocess GTP dialogue, per-opcode VM
+        tracing, result-parsing context, etc.).
     """
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "gobreeder.log")

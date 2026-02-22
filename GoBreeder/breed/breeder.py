@@ -55,10 +55,10 @@ class Breeder:
                     genome = data_structures.GoGenome(dna=dna)
                     self.population.append(genome)
                     self.genome_stats[self.population[-1]] = ""
-                    self.log(f"ressurrected genome #{ctr}\n")
+                    Breeder._logger.info("BREEDER: ressurrected genome #%d", ctr)
                     ctr += 1
                 except (SyntaxError, ValueError):
-                    self.log(f"Genome FAILED to resurrect #{ctr}\n")
+                    Breeder._logger.info("BREEDER: Genome FAILED to resurrect #%d", ctr)
         else:
             self.log("breeder using genome genesis\n")
             for _n in range(0, population_size):
@@ -67,8 +67,7 @@ class Breeder:
                 self.genome_stats[self.population[-1]] = ""
         self.current_simulation_member = 0
         self.population_max = len(self.population)
-        self.log("pop size is %d\n" % len(self.population))
-        # write
+        Breeder._logger.info("BREEDER: pop size is %d", len(self.population))
         self.log("\t.. Fin ..\n")
 
     def simulate_gtp_game(
@@ -121,11 +120,13 @@ class Breeder:
         all_lines = sout.split("\n") + serr_lines
         moves = sum(1 for ln in all_lines if "genmove" in ln) // 2
 
-        # Full subprocess stderr logged at DEBUG for diagnosis.
-        if serr.strip():
-            self._logger.debug("BREEDER: subprocess stderr:\n%s", serr)
-        else:
-            self._logger.debug("BREEDER: subprocess stderr: (empty)")
+        # Full subprocess stderr logged at DEBUG for diagnosis — only built
+        # and written when the logger is actually at DEBUG level.
+        if self._logger.isEnabledFor(logging.DEBUG):
+            if serr.strip():
+                self._logger.debug("BREEDER: subprocess stderr:\n%s", serr)
+            else:
+                self._logger.debug("BREEDER: subprocess stderr: (empty)")
 
         # Extract the final_score response from any participating program.
         # In -verbose mode gogui-twogtp writes "<prefix>>> command" / "<prefix><< response"
@@ -166,8 +167,9 @@ class Breeder:
                     result_str = "B+R"
                     break
 
-        if result_str == "?":
-            # Log nearby context to help diagnose parsing failures.
+        if result_str == "?" and self._logger.isEnabledFor(logging.DEBUG):
+            # Only build the context list (potentially millions of serr lines)
+            # when DEBUG logging is actually enabled.
             context = [
                 f"  [{j}] {serr_lines[j]}"
                 for j in range(len(serr_lines))
@@ -198,22 +200,23 @@ class Breeder:
             if msg.startswith("\t"):
                 board_rows.append(msg.strip())
 
-        # Log a clear per-game summary.
+        # Log a clear per-game summary at INFO so it is always visible.
         genome_hash = str(genome_to_run)
         if board_rows:
             board_display = "\n".join(f"  {row}" for row in board_rows)
-            self._logger.debug(
+            self._logger.info(
                 "BREEDER: --- FINAL BOARD (player=%s) ---\n%s\n---",
                 player, board_display,
             )
-        else:
-            self._logger.debug("BREEDER: (no board state found in child output)")
-        self._logger.debug(
-            "BREEDER: --- GAME RESULT --- player=%s result=%s moves=%d i_win=%s genome=%s",
+        self._logger.info(
+            "BREEDER: GAME RESULT  player=%s  result=%s  moves=%d  i_win=%s  genome=%s",
             player, result_str, moves, won, genome_hash,
         )
         elapsed = time.monotonic() - _game_start
-        self.log(f"\tevaluation: moves made={moves} result={result_str} i_win {won} elapsed {elapsed:.1f}s\n")
+        self._logger.info(
+            "BREEDER: evaluation: moves=%d result=%s i_win=%s elapsed=%.1fs",
+            moves, result_str, won, elapsed,
+        )
 
         return {"moves_made": moves, "i_win": won, "result": result_str, "elapsed_s": elapsed}
 
