@@ -42,6 +42,12 @@ _SUBDIRS_TO_COPY = [
     "windows",
 ]
 
+# Files that are safe to overwrite during a code-only refresh.
+# Excludes state files (current_population.py, config.py) that must be preserved.
+_REFRESHABLE_CODE_FILES = [
+    f for f in _BREED_SOURCE_FILES if f != "current_population.py"
+]
+
 
 class DeploymentError(Exception):
     """Raised when deployment creation or deletion fails."""
@@ -142,6 +148,49 @@ class DeploymentFactory:
         logger.info("Created deployment %r at %s", name, deployment_dir)
         return model
 
+    def refresh_code(
+        self,
+        deployment: DeploymentModel,
+        repo_root: Path | None = None,
+    ) -> list[str]:
+        """Re-copy only code files into an existing deployment.
+
+        State files (``current_population.py``, ``config.py``, ``*.py_save*``)
+        are never touched.  Returns a list of filenames that were updated.
+        """
+        if repo_root is None:
+            repo_root = get_repo_root()
+
+        source_breed_dir = repo_root / "GoBreeder" / "breed"
+        breed_dir = deployment.breed_dir
+
+        if not breed_dir.is_dir():
+            raise DeploymentError(f"Deployment breed directory not found: {breed_dir}")
+
+        updated: list[str] = []
+
+        for fname in _REFRESHABLE_CODE_FILES:
+            src = source_breed_dir / fname
+            if src.exists():
+                shutil.copy2(src, breed_dir / fname)
+                logger.debug("Refreshed %s -> %s", src, breed_dir / fname)
+                updated.append(fname)
+            else:
+                logger.debug("Source file not found (skipped): %s", src)
+
+        for fname in _BINARY_FILES:
+            src = source_breed_dir / fname
+            if src.exists():
+                dst = breed_dir / fname
+                shutil.copy2(src, dst)
+                _mark_executable(dst)
+                updated.append(fname)
+
+        logger.info(
+            "Refreshed %d code file(s) in deployment %r", len(updated), deployment.name
+        )
+        return updated
+
 
 def _mark_executable(path: Path) -> None:
     """Add owner/group/other execute bits to a file, ignoring errors on Windows."""
@@ -222,7 +271,7 @@ history_stats_base = _ensure_trailing_sep(_join_path(basepath, "histories"))
 
 record_stats = False
 threads_or_processes = False
-show_cmd = True
+show_cmd = False
 graph_move_pc = False
 show_board_every_move = False
 

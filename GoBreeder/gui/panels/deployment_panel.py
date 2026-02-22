@@ -111,6 +111,7 @@ class DeploymentPanel(QWidget):
         self._btn_delete.clicked.connect(self._on_delete_deployment)
         self._btn_open_dir.clicked.connect(self._on_open_directory)
         self._btn_go_to_run.clicked.connect(self._on_go_to_run)
+        self._btn_refresh_code.clicked.connect(self._on_refresh_code)
         self._btn_inject_population.clicked.connect(self._on_inject_population)
 
     def _refresh_list(self) -> None:
@@ -142,6 +143,7 @@ class DeploymentPanel(QWidget):
             self._btn_delete.setEnabled(False)
             self._btn_open_dir.setEnabled(False)
             self._btn_go_to_run.setEnabled(False)
+            self._btn_refresh_code.setEnabled(False)
             return
 
         self._detail_name.setText(d.name)
@@ -150,6 +152,7 @@ class DeploymentPanel(QWidget):
         self._btn_delete.setEnabled(not d.is_running())
         self._btn_open_dir.setEnabled(True)
         self._btn_go_to_run.setEnabled(True)
+        self._btn_refresh_code.setEnabled(not d.is_running())
         self._btn_inject_population.setEnabled(
             self._library is not None and not d.is_running()
         )
@@ -214,6 +217,30 @@ class DeploymentPanel(QWidget):
     def _on_go_to_run(self) -> None:
         if self._selected_deployment is not None:
             self.go_to_run_requested.emit(self._selected_deployment.name)
+
+    def _on_refresh_code(self) -> None:
+        if self._selected_deployment is None:
+            return
+        d = self._selected_deployment
+        reply = QMessageBox.question(
+            self,
+            "Refresh Code",
+            f"Re-copy source code files into '{d.name}'?\n\n"
+            "Population data, config.py, and stats will not be changed.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            updated = self._factory.refresh_code(d)
+            QMessageBox.information(
+                self,
+                "Refresh Complete",
+                f"Updated {len(updated)} file(s):\n" + "\n".join(f"  {f}" for f in updated),
+            )
+            logger.info("Refreshed code for deployment %r: %s", d.name, updated)
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Refresh Failed", str(exc))
 
     def _on_inject_population(self) -> None:
         if self._selected_deployment is None or self._library is None:

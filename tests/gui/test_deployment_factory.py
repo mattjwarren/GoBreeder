@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from GoBreeder.gui.models.deployment_factory import DeploymentError, DeploymentFactory
+from GoBreeder.gui.models.deployment_factory import (
+    DeploymentError,
+    DeploymentFactory,
+    _REFRESHABLE_CODE_FILES,
+)
 from GoBreeder.gui.models.run_state import RunState
 
 REPO_ROOT = Path(__file__).parent.parent.parent  # tests/gui/ -> tests/ -> repo root
@@ -85,3 +89,54 @@ class TestDeploymentFactory:
         factory = DeploymentFactory()
         model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
         assert isinstance(model, DeploymentModel)
+
+    # --- refresh_code tests ---
+
+    def test_refresh_code_updates_code_files(self, tmp_path: Path) -> None:
+        """refresh_code() should overwrite code files with the latest source."""
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        # Corrupt a code file
+        target = model.breed_dir / "breeder.py"
+        target.write_text("# corrupted")
+        updated = factory.refresh_code(model, repo_root=REPO_ROOT)
+        assert "breeder.py" in updated
+        # File content should now differ from "# corrupted"
+        assert target.read_text() != "# corrupted"
+
+    def test_refresh_code_does_not_touch_population_file(self, tmp_path: Path) -> None:
+        """refresh_code() must never overwrite the population state file."""
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        pop_file = model.population_file_path()
+        sentinel = "# sentinel population data\n"
+        pop_file.write_text(sentinel)
+        factory.refresh_code(model, repo_root=REPO_ROOT)
+        assert pop_file.read_text() == sentinel, "population file was overwritten"
+
+    def test_refresh_code_does_not_touch_config(self, tmp_path: Path) -> None:
+        """refresh_code() must not overwrite the deployment-specific config.py."""
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        config_file = model.breed_dir / "config.py"
+        original_config = config_file.read_text()
+        factory.refresh_code(model, repo_root=REPO_ROOT)
+        assert config_file.read_text() == original_config, "config.py was overwritten"
+
+    def test_refresh_code_returns_list_of_updated_files(self, tmp_path: Path) -> None:
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        updated = factory.refresh_code(model, repo_root=REPO_ROOT)
+        assert isinstance(updated, list)
+        assert len(updated) > 0
+
+    def test_refresh_code_raises_if_breed_dir_missing(self, tmp_path: Path) -> None:
+        factory = DeploymentFactory()
+        model = factory.create(name="test_deploy", parent_dir=tmp_path, repo_root=REPO_ROOT)
+        import shutil
+        shutil.rmtree(model.breed_dir)
+        with pytest.raises(DeploymentError, match="not found"):
+            factory.refresh_code(model, repo_root=REPO_ROOT)
+
+    def test_refreshable_files_excludes_current_population(self) -> None:
+        assert "current_population.py" not in _REFRESHABLE_CODE_FILES
