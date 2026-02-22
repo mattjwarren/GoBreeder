@@ -1,6 +1,6 @@
 ﻿# GoBreeder GUI Progress
 
-## Last Updated: 2026-06-07
+## Last Updated: 2026-06-08
 
 ## Current Branch: GUI
 
@@ -11,24 +11,33 @@
 | 1-4   | Core GUI (deployments, breeding runs, VM inspector) | Complete |
 | 5     | Archive Management UI | Complete |
 | 6     | Population Library | Complete |
-| Bug   | Breeding run board/result logging fixes | Complete |
+| Bug   | Breeding run correctness + log verbosity fixes | Complete |
 
-## Recent Work (2026-06-07)
+## Recent Work (2026-06-08)
 
-Fixed two breeding-run log quality bugs:
+Three breeding-run bugfixes made in this session (all 277 tests pass):
 
-1. **Final board state was always empty** — gogui-twogtp sends `clear_board` (for
-   aborted game-2 setup) *before* sending `quit`.  Rendering the board on `quit`
-   therefore always showed an empty grid.  Fix: call `render_board()` in the
-   `final_score` handler in `mediator.py` while the game state is still intact,
-   and remove the call from the `quit` handler.
+1. **`vm.logging=False` crash** (`bb04159`) — `mediator.py` line 46 was setting
+   `vm.logging = False` (an attribute on the *module* object), replacing `vm`'s
+   `import logging` binding with `False`.  Any subsequent `logging.getLogger()`
+   call inside `vm.py` then crashed with `AttributeError: 'bool' object has no
+   attribute 'getLogger'`.  Fix: deleted the line entirely.
 
-2. **Full subprocess stderr now logged** — re-added full serr DEBUG logging to
-   `breeder.py` (`BREEDER: subprocess stderr: ...`) to allow diagnosis of the
-   `"has won"` fallback (win detection relies on a line produced by `ref_v0.1_exe`
-   on its stderr) and ENGINE: board rows.
+2. **Result always `?` when player dies mid-game** (`dde651d`) — `ref_v0.1_exe`
+   emits `R<< ? Black move failed - White has won` as a GTP error body.  The
+   primary parser only accepts non-empty `<< = <score>` responses, so
+   `result_str` stayed `?`.  Fix: added a secondary scan of `serr_lines` for
+   `"white has won"` / `"black has won"` (case-insensitive) that synthesises
+   `"W+R"` or `"B+R"`.
 
-Also cleaned up a pre-existing ruff import-order issue in `breeder.py`.
+3. **Log verbosity** (`4c17d73`) — all messages previously went to `_logger.debug()`
+   meaning every game dumped MB of GTP dialogue to `gobreeder.log`.  Fix:
+   - `setup_logging` default changed to `logging.INFO`
+   - Resurrections, pop size, final board, game result, evaluation summary
+     promoted to `_logger.info()` — always visible
+   - subprocess stderr dump + result-parsing context list-comprehension gated
+     on `_logger.isEnabledFor(logging.DEBUG)` so the multi-MB work is never
+     even started at INFO level
 
 See [phase5_6_progress.md](phase5_6_progress.md) for earlier phase details.
 
