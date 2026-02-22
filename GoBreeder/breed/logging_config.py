@@ -55,3 +55,8 @@ def setup_logging(log_dir: str, level: int = logging.DEBUG) -> None:
     file_handler.setLevel(level)
     file_handler.setFormatter(fmt)
     root.addHandler(file_handler)
+
+    # The VM module is extremely verbose at DEBUG level. Suppress to WARNING
+    # by default so breeding run logs stay readable.  Set to DEBUG explicitly
+    # if you need low-level VM opcode tracing.
+    logging.getLogger("vm").setLevel(logging.WARNING)
