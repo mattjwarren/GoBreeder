@@ -111,6 +111,47 @@ class Breeder:
         sout, serr = game_process.communicate()
         returncode = game_process.returncode
 
+    def simulate_gtp_game(
+        self, player="black", player_program=config.player_program, enemy_program=config.enemy_program
+    ):
+        enemy_player = "black" if player == "white" else "white"
+        # Put genome to test into genome_test file
+        # get command for program to test against
+        self.log("Simulating GTP game for breeding\n")
+        # create batch fie, run that?
+        if self.switch_players:
+            n = enemy_player
+            enemy_player = player
+            player = n
+            self.switch_players = False
+        else:
+            self.switch_players = True
+        self.log(f"\tI AM PLAYER {player}\n")
+        genome_to_run = self.population[self.current_simulation_member]
+        breeding_file = open("breeding_genome.py", "w")
+        breeding_file.write(repr(genome_to_run.dna) + "\n")
+        breeding_file.close()
+
+        cmdstr = "%s -%s %s -%s %s -size %d -referee %s -auto -verbose" % (
+            config.two_gtp_command,
+            player,
+            player_program,
+            enemy_player,
+            enemy_program,
+            config.board_size,
+            config.referee_program_command,
+        )
+        if config.show_cmd:
+            self.log("CMDSTRING:" + cmdstr)
+        # Use shlex.split to avoid shell=True with unvalidated config paths.
+        args = shlex.split(cmdstr)
+        self._logger.debug("BREEDER: subprocess args: %s", args)
+        game_process = subprocess.Popen(
+            args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        sout, serr = game_process.communicate()
+        returncode = game_process.returncode
+
         self._logger.debug("BREEDER: subprocess returncode: %d", returncode)
         if sout.strip():
             self._logger.debug("BREEDER: subprocess stdout:\n%s", sout)
@@ -121,21 +162,47 @@ class Breeder:
         else:
             self._logger.debug("BREEDER: subprocess stderr: (empty)")
 
-        move_made = "genmove"  # integer /2 is good enough
-        win_line = "has won"
-        moves = 0
-        won = False
-        for line in sout.split("\n") + serr.split("\n"):  # if works great, if not switch for sout
-            if move_made in line:
-                moves += 1
-            elif win_line in line:
-                tokens = line.split()
-                if tokens[-3].lower() == player.lower():
-                    won = True
-        moves = moves // 2
-        self.log("\tevaluation: moves made=%d i_win %s\n" % (moves, str(won)))
+        # Count genmove calls (each pair = one full move from each side).
+        all_lines = sout.split("\n") + serr.split("\n")
+        moves = sum(1 for ln in all_lines if "genmove" in ln) // 2
 
-        return {"moves_made": moves, "i_win": won}
+        # Extract the referee's final_score response.
+        # In -verbose mode gogui-twogtp writes lines like "R<< = B+R" to stderr.
+        result_str = "?"  # unknown
+        after_final_score = False
+        for ln in serr.split("\n"):
+            if "final_score" in ln and ">>" in ln:
+                after_final_score = True
+                continue
+            if after_final_score and "R<< =" in ln:
+                parts = ln.split("R<< =", 1)
+                candidate = parts[1].strip() if len(parts) > 1 else ""
+                if candidate:
+                    result_str = candidate
+                after_final_score = False
+
+        # Determine win from result string (e.g. "B+R", "W+3.5").
+        # The result_str starts with 'B' for Black win, 'W' for White win.
+        won = False
+        if result_str != "?":
+            won = result_str.upper().startswith(player[0].upper())
+        else:
+            # Fallback: scan for old-style "has won" line.
+            for ln in all_lines:
+                if "has won" in ln:
+                    tokens = ln.split()
+                    if len(tokens) >= 3 and tokens[-3].lower() == player.lower():
+                        won = True
+
+        # Log a clear per-game summary.
+        genome_hash = str(genome_to_run)
+        self._logger.debug(
+            "BREEDER: --- GAME RESULT --- player=%s result=%s moves=%d i_win=%s genome=%s",
+            player, result_str, moves, won, genome_hash,
+        )
+        self.log(f"\tevaluation: moves made={moves} result={result_str} i_win {won}\n")
+
+        return {"moves_made": moves, "i_win": won, "result": result_str}
 
     def log(self, msg: str) -> None:
         """Forward to Python logger at DEBUG level."""

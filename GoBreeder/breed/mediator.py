@@ -255,6 +255,16 @@ class Mediator:
             # TODO: Plugin fitness / breeding criteria/methods
             game_stats = self.breeder.simulate_gtp_game()
 
+            result = game_stats.get("result", "?")
+            moves = game_stats.get("moves_made", 0)
+            i_win = game_stats.get("i_win", False)
+            # current_simulation_member still points to the genome that just played
+            # (end_of_game hasn't incremented it yet).
+            genome_hash = str(self.breeder.population[self.breeder.current_simulation_member])
+            self.log(
+                f"GAME COMPLETE  #{game_number}  result={result}  moves={moves}"
+                f"  {'WIN' if i_win else 'LOSS'}  genome={genome_hash}"
+            )
             self.log("returned from simulate game. Mediator processing stats and breeding.")
             self.breeder.end_of_game(game_stats=game_stats)
 
