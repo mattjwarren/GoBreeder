@@ -15,7 +15,7 @@ The project is tightly coupled to:
 - An external **referee executable** (`ref_v0.1_exe`) to adjudicate games.
 - A Java opponent bot (default: `gosumi_2013.jar`).
 
-The code is largely **Python 2-era** style (e.g., `print message`), and configuration assumes a Windows + Cygwin setup.
+The code was originally **Python 2-era** style and assumed a Windows + Cygwin setup.  It has been migrated to **Python 3** and restructured for **WSL2** (see reorganisation notes below).
 
 
 ## Repository layout (high level)
@@ -621,21 +621,25 @@ The key changes to `config.py` to support WSL2 are:
 
 ### Shell script changes required for WSL2
 
-| Script | Change |
-|--------|--------|
+| Script | Change (applied) |
+|--------|------------------|
 | `scripts/breed_pop.sh` | `python.exe` → `python3`; adjust path to reflect `breed/` relative to scripts location |
 | `scripts/deploy_breeder_instance.sh` | Remove Cygwin-style escaped backslash path for `breed_exec_base`; use a plain Linux path |
 | `scripts/wrapdummy.sh` | `$SCRIPT_DIR/gogui-dummy.exe` → now in `../breed/windows/gogui-dummy.exe` |
-| `scripts/sg_wrapper.sh` | `$BREED_DIR/play_gtp.py` path updated for new layout |
-| `scripts/wrapper.sh` / `wrapper_c2.sh` | `$BREED_DIR/mediator.py` path updated |
+| `scripts/sg_wrapper.sh` | `$BREED_DIR/play_gtp.py` path updated for new layout; `python` → `python3` |
+| `scripts/wrapper.sh` / `wrapper_c2.sh` | `$BREED_DIR/mediator.py` path updated; `python` → `python3` |
+| `scripts/twogtp_wrap.sh` | Updated to use `breed/windows/gogui-twogtp.exe` and `breed/ref_v0.1_exe` |
 
 ---
 
-### Python 2 → 3 compatibility note
+### Python 2 → 3 migration (completed Feb 2026)
 
-`breeder.py` and `vm.py` contain Python 2-only syntax:
+All Python files have been updated to run under Python 3.  Changes made:
 
-- `print message` (bare `print` statement) – needs `print(message)`
-- `data_structures.py` has a `next()` method on an iterator class; Python 3 uses `__next__()`.
-
-These need to be addressed before the code will run under Python 3 on WSL2.  This is a separate task from the structural reorganisation.
+| File | Change |
+|------|--------|
+| `vm.py` | `print x` → `print(x)` (4 statements) |
+| `data_structures.py` | Renamed `CircularList.next()` to `__next__()`, keeping `next = __next__` as alias for vm.py's explicit `.next()` calls; `print opcode,opdata` → `print(opcode, opdata)` |
+| `breeder.py` | `print "..."` → `print("...")`; added `shell=True, text=True` to `subprocess.Popen` so stdout/stderr are decoded strings; `moves/2` → `moves//2` (integer division); `for genome in self.genome_stats.keys()` → `list(self.genome_stats.keys())` to allow deletion during iteration |
+| `play_gtp.py` | Replaced `import popen2` + `import string` with `import subprocess`; `popen2.popen2(command)` → `subprocess.Popen(command, shell=True, stdin=PIPE, stdout=PIPE, text=True)` with `infile=proc.stdout`, `outfile=proc.stdin`; all `string.lower/upper/find/join/split` calls replaced with equivalent str methods; `print "..."` → `print("...")` |
+| `simple_go.py` | Removed `import string`; `string.find(x_coords_string, m[0])` → `x_coords_string.find(m[0])`; `string.join(stones, "")` → `"".join(stones)`; `print x` → `print(x)` |
