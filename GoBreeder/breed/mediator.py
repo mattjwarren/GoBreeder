@@ -198,13 +198,16 @@ class Mediator:
                     sys.stdout.write("=\n\n")
                     sys.stdout.flush()
                 elif "final_score" in verb:
+                    # Render the board NOW while game state is still intact.
+                    # gogui-twogtp sends clear_board before quit (for aborted game 2
+                    # setup), so by the time quit arrives the board is already empty.
+                    self.go_eng.render_board()
                     self.send("? unknown command: final_score\n\n")
                 elif verb == "quit":
                     ##Need to capture i_win and fitness score?
                     #
                     #
                     # possiblky can correlate winners from logs and datestamps aftar?
-                    self.go_eng.render_board()
                     self.log(f"{datetime.datetime.now()} Finished game")
                     self.send("=\n\n")
                     sys.exit(0)

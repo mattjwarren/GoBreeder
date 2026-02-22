@@ -4,9 +4,9 @@ import datetime
 import logging
 import random
 import shlex
-import time
 import shutil
 import subprocess
+import time
 
 import config
 import data_structures
@@ -120,6 +120,12 @@ class Breeder:
         serr_lines = serr.split("\n")
         all_lines = sout.split("\n") + serr_lines
         moves = sum(1 for ln in all_lines if "genmove" in ln) // 2
+
+        # Full subprocess stderr logged at DEBUG for diagnosis.
+        if serr.strip():
+            self._logger.debug("BREEDER: subprocess stderr:\n%s", serr)
+        else:
+            self._logger.debug("BREEDER: subprocess stderr: (empty)")
 
         # Extract the final_score response from any participating program.
         # In -verbose mode gogui-twogtp writes "<prefix>>> command" / "<prefix><< response"
