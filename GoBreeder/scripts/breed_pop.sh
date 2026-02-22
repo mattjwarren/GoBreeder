@@ -9,6 +9,8 @@ TARGET_BREED="${DEPLOY_BASE}/GoBreeder_${instance}/breed"
 
 cd "${TARGET_BREED}"
 rm -f runlog.txt
+# Pre-create the log file so tail -f can open it immediately.
+touch runlog.txt
 uv run python3 mediator.py -gtp_breed -genome_file current_population.py &
-sleep 3
-tail -f runlog.txt
+# --retry keeps tail alive even if the file is briefly empty or recreated.
+tail --retry -f runlog.txt

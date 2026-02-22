@@ -22,6 +22,13 @@ mkdir -p "${target_dir}"
 # config.py auto-detects its own basepath via __file__, so no sed rewrite needed.
 cp -R "${REPO_DIR}/"* "${target_dir}"
 
+# Ensure all executables have the execute bit set.
+# Windows .exe files need this in WSL2 for interop to invoke them.
+# The Linux referee binary and all shell scripts also need it.
+find "${target_dir}" -name "*.exe" -exec chmod +x {} +
+find "${target_dir}" -name "*.sh"  -exec chmod +x {} +
+chmod +x "${target_dir}/breed/ref_v0.1_exe"
+
 # Create an isolated virtual environment for this instance and install all
 # runtime dependencies declared in pyproject.toml.
 # uv run (used by all scripts) walks up from the cwd and will find this .venv
