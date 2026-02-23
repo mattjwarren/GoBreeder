@@ -1,8 +1,8 @@
 ﻿# GoBreeder GUI Progress
 
-## Last Updated: 2026-06-08
+## Last Updated: 2026-02-23
 
-## Current Branch: GUI
+## Current Branch: recode
 
 ## Overall Status
 
@@ -12,10 +12,26 @@
 | 5     | Archive Management UI | Complete |
 | 6     | Population Library | Complete |
 | Bug   | Breeding run correctness + log verbosity fixes | Complete |
+| Recode | Rust VM acceleration (`go_vm_rs`) | **Complete** |
 
-## Recent Work (2026-06-08)
+## Recent Work (2026-02-23)
 
-Three breeding-run bugfixes made in this session (all 277 tests pass):
+### Rust VM acceleration (`go_vm_rs`)
+
+Re-implemented the VM execution engine in Rust + PyO3 as `go_vm_rs/`.
+
+**Result: ~127× faster `get_move` calls** (0.18 ms vs 23 ms on a 1024-instruction genome,
+4000 clock cycles, release build, x86-64).
+
+Key changes:
+- New Rust crate at `go_vm_rs/` — build with `maturin develop --release` from that directory.
+- `GoBreeder/breed/vm.py` delegates `get_move` to `go_vm_rs.get_move()` when available; falls
+  back silently to the pure-Python engine if the wheel is not installed.
+- Fixed pre-existing Python 3 port bug in `opcode_div`: `A / B` (float) → `A // B` (integer),
+  matching the original Python 2 semantics and the Rust implementation.
+- All 277 tests pass (branch `recode`).
+
+
 
 1. **`vm.logging=False` crash** (`bb04159`) — `mediator.py` line 46 was setting
    `vm.logging = False` (an attribute on the *module* object), replacing `vm`'s

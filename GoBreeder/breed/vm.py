@@ -2,6 +2,12 @@
 Created on 4 Sep 2013
 
 @author: GB108544
+
+Fast path: `get_move` delegates to the Rust/PyO3 extension `go_vm_rs` when
+available.  All class-level constants (register lists, opcode tables, etc.)
+are kept here because ``data_structures.py`` imports them to generate genomes.
+The pure-Python execution engine is preserved and used automatically when the
+native extension is absent (e.g. on a fresh checkout without the wheel built).
 """
 
 import array
@@ -12,6 +18,16 @@ import sys
 
 import board_info
 import config
+
+# Attempt to load the Rust-accelerated VM.  Importing at module level means
+# the cost is paid once per process, not once per move.
+try:
+    import go_vm_rs as _go_vm_rs  # type: ignore[import]
+
+    _RUST_VM_AVAILABLE = True
+except ImportError:
+    _go_vm_rs = None  # type: ignore[assignment]
+    _RUST_VM_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +189,26 @@ class GoVM:
 
     # Run the genome, with the board info (should metadata the board stuff out as is Go sepcific)
     def get_move(self, board=dict(), player=None, program=list()):
+        if _RUST_VM_AVAILABLE:
+            return self._get_move_rust(board=board, player=player, program=program)
+        return self._get_move_python(board=board, player=player, program=program)
+
+    def _get_move_rust(self, board=dict(), player=None, program=list()):
+        """Delegate execution to the Rust/PyO3 go_vm_rs extension.
+
+        ``boot()`` is called on the Python instance so that register attributes
+        (e.g. ``reg_X``, ``reg_Y``) remain accessible after the call, preserving
+        the same post-execution interface as the pure-Python path.
+        """
+        self.boot(board=board, program=program)
+        self.regs["PLAYER"] = GoVM.player_reg_lookup[player]
+        move, pc_history = _go_vm_rs.get_move(board, player, program)
+        # Sync the result coordinates back so callers can read reg_X / reg_Y.
+        self.regs["X"] = move[0]
+        self.regs["Y"] = move[1]
+        return move, pc_history
+
+    def _get_move_python(self, board=dict(), player=None, program=list()):
         self.boot(board=board, program=program)
 
         self.regs["PLAYER"] = GoVM.player_reg_lookup[player]
@@ -667,7 +703,7 @@ class GoVM:
         regs = self.regs
         A, B = opdata[0], opdata[1]
         try:
-            regs["RES"] = A / B
+            regs["RES"] = A // B  # integer division (Python 2 `/` behaviour)
             regs["CRY"] = A % B
         except ZeroDivisionError:
             regs["RES"] = 0
