@@ -13,8 +13,31 @@
 | 6     | Population Library | Complete |
 | Bug   | Breeding run correctness + log verbosity fixes | Complete |
 | Recode | Rust VM acceleration (`go_vm_rs`) | **Complete** |
+| GoSumi  | Bytecode-patch for 10× faster games | **Complete** |
 
 ## Recent Work (2026-02-23)
+
+### GoSumi fast JAR (`gosumi_2013_fast.jar`)
+
+Bytecode-patched `gosumi_2013.jar` for ~10× faster per-move search, enabling shorter
+timeouts per game and dramatically faster training throughput.
+
+**Benchmark result: 600 ms/move → 56 ms/move (10.6× speedup)**
+
+Key changes:
+- `adhoc_scripts/patch_gosumi_jar.py` — Python script that patches `GoSumi.class` in-place
+  using pure bytecode manipulation (no Java source needed).
+- Three patches applied:
+  1. Timeout multiplier `sipush 1000 → sipush 100` — `-timeout 1` now means 100 ms/move
+     instead of 1000 ms/move.
+  2. Default max_time `sipush 28000 → sipush 2000` — fallback (no `-timeout`) is 2 s not 28 s.
+  3. `GOSUMI_9x9_DEF_DEPTH {8,12,16} → {4,6,8}` — shallower search terminates by depth
+     sooner, complementing the smaller time budget.
+- `GoBreeder/breed/java/gosumi_2013_fast.jar` added.
+- `GoBreeder/breed/config.py` updated: `enemy_program` now points to `gosumi_2013_fast.jar`
+  (both module-level and inside `set_basepath()`); original jar retained for reference.
+- Move quality impact minimal for the opening/mid-game (first 8–9 moves identical in
+  benchmark runs); diverges slightly in the endgame, which is acceptable for training.
 
 ### Rust VM acceleration (`go_vm_rs`)
 
