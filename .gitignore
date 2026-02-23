@@ -10,6 +10,9 @@ dist/
 build/
 .eggs/
 
+# Rust build artefacts
+go_vm_rs/target/
+
 # Virtual environments
 .venv/
 venv/
