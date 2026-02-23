@@ -189,7 +189,7 @@ class GoVM:
 
     # Run the genome, with the board info (should metadata the board stuff out as is Go sepcific)
     def get_move(self, board=dict(), player=None, program=list()):
-        if _RUST_VM_AVAILABLE:
+        if _RUST_VM_AVAILABLE and config.use_rust_vm:
             return self._get_move_rust(board=board, player=player, program=program)
         return self._get_move_python(board=board, player=player, program=program)
 

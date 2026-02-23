@@ -58,3 +58,66 @@ cd "${target_dir}"
 uv sync --no-dev
 echo "Virtual environment ready at ${target_dir}/.venv"
 
+# ---------------------------------------------------------------------------
+# Rust VM extension (go_vm_rs)
+#
+# Copy the Rust source from the repo root into the instance directory and
+# build it in-place so the platform-specific .so is installed into the
+# instance's own .venv.  Building locally ensures the binary matches the
+# host architecture (important for ARM nodes such as pi2/pi3).
+#
+# If Rust or maturin are unavailable the build is skipped and vm.py falls
+# back transparently to the pure-Python VM.
+# ---------------------------------------------------------------------------
+RUST_SRC="${DEPLOY_BASE}/go_vm_rs"
+RUST_DEST="${target_dir}/go_vm_rs"
+
+build_rust_vm() {
+    echo "Building Rust VM extension for instance ${instance}..."
+
+    # Ensure Rust toolchain is available; install rustup if not.
+    if ! command -v cargo &>/dev/null; then
+        if ! command -v rustup &>/dev/null; then
+            echo "  Rust not found – installing rustup..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --no-modify-path
+        fi
+        # shellcheck source=/dev/null
+        source "${HOME}/.cargo/env"
+        # Also export so child processes (maturin build) see the updated PATH.
+        export PATH="${HOME}/.cargo/bin:${PATH}"
+    fi
+
+    echo "  Rust: $(rustc --version)"
+
+    # Install maturin into the instance venv (build-time only).
+    "${target_dir}/.venv/bin/pip" install --quiet maturin
+
+    # Build and install the Rust extension directly into the instance venv.
+    # maturin develop --release compiles with full optimisations and installs
+    # the resulting .so into the venv in a single step.
+    cd "${RUST_DEST}"
+    "${target_dir}/.venv/bin/maturin" develop --release 2>&1 | sed 's/^/  /'
+
+    # Verify the extension is importable before declaring success.
+    "${target_dir}/.venv/bin/python" -c \
+        'import go_vm_rs; print("  go_vm_rs imported OK")'
+
+    echo "Rust VM extension built and installed."
+}
+
+if [ -d "${RUST_SRC}" ]; then
+    # Copy Rust source (exclude the target/ build cache to save space).
+    rsync -a --exclude='target/' "${RUST_SRC}/" "${RUST_DEST}/"
+
+    if build_rust_vm; then
+        echo "Rust VM ready for instance ${instance}."
+    else
+        echo "WARNING: Rust VM build failed – instance will use the Python VM fallback." >&2
+    fi
+else
+    echo "WARNING: go_vm_rs source not found at ${RUST_SRC}; skipping Rust VM build." >&2
+fi
+
+cd "${target_dir}"
+

@@ -62,6 +62,7 @@ def set_basepath(new_basepath):
     global gobreeder
     global gosumi
     global gosumi_2013
+    global gosumi_2013_fast
     global player_program
     global enemy_program
     global referee_program_command
@@ -90,9 +91,12 @@ def set_basepath(new_basepath):
     _java_bin = shutil.which("java") or "java"
     gosumi = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_dks.jar"'
     gosumi_2013 = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+    # gosumi_2013_fast: bytecode-patched variant (10× faster per move:
+    # timeout multiplier 1000→100 ms, default 28000→2000 ms, depths {8,12,16}→{4,6,8})
+    gosumi_2013_fast = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013_fast.jar -timeout 1"'
     player_program = gobreeder
-    # and for the enemy program
-    enemy_program = gosumi_2013
+    # and for the enemy program – use the fast variant for quicker training games
+    enemy_program = gosumi_2013_fast
 
     # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
     referee_program_command = _join_path(basepath, "ref_v0.1_exe")
@@ -133,9 +137,12 @@ gobreeder = '"' + pythonpath + " " + basepath + "mediator.py -genome_file " + ba
 # resolve 'java' relative to cwd and hit the breed/java/ directory.
 gosumi = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_dks.jar"'
 gosumi_2013 = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013.jar -timeout 1"'
+# gosumi_2013_fast: bytecode-patched variant (10× faster per move:
+# timeout multiplier 1000→100 ms, default 28000→2000 ms, depths {8,12,16}→{4,6,8})
+gosumi_2013_fast = '"' + _java_bin + ' -jar ' + java_basepath + 'gosumi_2013_fast.jar -timeout 1"'
 player_program = gobreeder
-# and for the enemy program
-enemy_program = gosumi_2013
+# and for the enemy program – use the fast variant for quicker training games
+enemy_program = gosumi_2013_fast
 # ref_v0.1_exe is a Linux binary in breed/ (runs natively under WSL2)
 referee_program_command = _join_path(basepath, "ref_v0.1_exe")
 # Bundled Linux gogui-twogtp script from gogui-v1.6.0-bin (sibling of breed/).
@@ -176,3 +183,9 @@ show_cmd = False
 
 graph_move_pc = False  # set True only for interactive/debug single-game runs
 show_board_every_move = False  # set True only for interactive/debug single-game runs
+
+# VM backend selection.
+# True  → use the Rust/PyO3 go_vm_rs extension when available (~127× faster).
+# False → always use the pure-Python VM regardless of whether the extension
+#         is installed.  Useful for debugging or profiling the Python engine.
+use_rust_vm: bool = True
